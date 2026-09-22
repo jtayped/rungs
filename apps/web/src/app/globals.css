@@ -1,0 +1,95 @@
+@import 'tailwindcss';
+
+/* One hue per rule, handed down from the game shell. Registered so it can
+   transition: the whole page shifts colour as each new rule lands. */
+@property --hue {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #0a84ff;
+}
+
+:root {
+  --ground: #f5f5f7;
+  --ink: #1d1d1f;
+  --muted: #6e6e73;
+  --sheet: rgb(255 255 255 / 0.74);
+  --hairline: rgb(0 0 0 / 0.06);
+  --aura-opacity: 0.42;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #000;
+    --ink: #f5f5f7;
+    --muted: #98989d;
+    --sheet: rgb(28 28 30 / 0.72);
+    --hairline: rgb(255 255 255 / 0.08);
+    --aura-opacity: 0.34;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-sheet: var(--sheet);
+  --color-hairline: var(--hairline);
+  --color-hue: var(--hue);
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-geist), system-ui, sans-serif;
+  --font-display:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', var(--font-geist), system-ui, sans-serif;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html {
+  background: var(--ground);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--ground);
+  font-family: var(--font-sans);
+  min-height: 100svh;
+}
+
+.hue-shift {
+  transition: --hue 1.4s var(--ease-out-soft);
+}
+
+::selection {
+  background: color-mix(in oklab, var(--hue) 28%, transparent);
+}
+
+/* The aura drifts slowly so the colour field feels alive rather than printed. */
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(6%, -4%, 0) scale(1.08);
+  }
+  66% {
+    transform: translate3d(-5%, 5%, 0) scale(0.96);
+  }
+}
+
+.drift {
+  animation: drift 22s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drift {
+    animation: none;
+  }
+  .hue-shift {
+    transition: none;
+  }
+}

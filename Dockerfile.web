@@ -1,0 +1,30 @@
+FROM node:22-bookworm-slim AS base
+RUN npm install -g pnpm@11.26.0
+WORKDIR /repo
+
+# Manifests first, so a source-only change reuses the install layer. The API's
+# manifest is here because web imports its types.
+FROM base AS build
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY tooling/eslint/package.json tooling/eslint/
+COPY tooling/typescript/package.json tooling/typescript/
+RUN pnpm install --frozen-lockfile --filter @rungs/web...
+COPY . .
+# Next bakes the /api rewrite into the build, so the API's address is needed
+# now. `api` is its service name in compose.yaml.
+ARG API_URL=http://api:3001
+ENV API_URL=$API_URL NEXT_TELEMETRY_DISABLED=1
+RUN pnpm --filter @rungs/web build
+
+FROM node:22-bookworm-slim
+ARG RUNGS_COMMIT=dev
+ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3000 NEXT_TELEMETRY_DISABLED=1 RUNGS_COMMIT=$RUNGS_COMMIT
+WORKDIR /app
+COPY --from=build --chown=node:node /repo/apps/web/.next/standalone ./
+COPY --from=build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next/static
+USER node
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD ["node", "-e", "fetch('http://localhost:3000/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+CMD ["node", "apps/web/server.js"]
