@@ -11,8 +11,11 @@ const button =
 
 // Playing never needs an account. This page exists for posting solutions.
 export function Account({ next }: { next: string }) {
-  const { data, isPending } = authClient.useSession()
-  if (isPending) return null
+  const { data, isPending, isRefetching } = authClient.useSession()
+  // Coming back to the tab refetches the session, and while signed out that
+  // flips isPending on again. Only hide on the first load, or the code step
+  // would unmount and drop the email it was waiting on.
+  if (isPending && !isRefetching) return null
   return data ? <SignedIn email={data.user.email} name={data.user.name} /> : <SignIn next={next} />
 }
 
