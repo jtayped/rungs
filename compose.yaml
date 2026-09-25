@@ -10,9 +10,19 @@ services:
     restart: unless-stopped
     environment:
       AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY}
+      # The rungs database on postgres-general, the shared Coolify Postgres,
+      # reached by its container name over the coolify network.
+      DATABASE_URL: ${DATABASE_URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM}
+      SITE_URL: https://rungs.joeltaylor.business
+    # Default keeps web able to reach the api; coolify is where the shared
+    # Postgres lives.
+    networks: [default, coolify]
     deploy:
       resources:
-        limits: { memory: 192M }
+        limits: { memory: 256M }
     healthcheck:
       test:
         - CMD
@@ -44,3 +54,7 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+networks:
+  coolify:
+    external: true

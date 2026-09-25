@@ -11,7 +11,12 @@ const config: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: join(import.meta.dirname, '../..'),
   async rewrites() {
-    return [{ source: '/api/:path*', destination: `${env.API_URL}/:path*` }]
+    return [
+      // better-auth sits under /api/auth on the API too, so its own paths and
+      // cookies line up with what the browser sees.
+      { source: '/api/auth/:path*', destination: `${env.API_URL}/api/auth/:path*` },
+      { source: '/api/:path*', destination: `${env.API_URL}/:path*` },
+    ]
   },
 }
 

@@ -1,4 +1,4 @@
-import type { Ladder } from './rules'
+import type { LadderFile } from '../../src/ladder/file'
 
 // A Few Words. The Password Game's mechanic: each rule shows up only once
 // every rule before it holds. Showing all of them at once turns a
@@ -13,9 +13,16 @@ import type { Ladder } from './rules'
 // on a human draft and collapsed to 0.71 the moment the subject became a
 // router. "Written in the form of a eulogy" survives the joke.
 
-export const EULOGY = {
+export default {
   id: 'a-few-words',
   title: 'a few words',
+  date: '2026-09-25',
+  hints: [
+    'write a plain eulogy first. a draft that already works is easier to bend than a blank page.',
+    'you can grieve someone you didn’t like. grief is about the loss, not the person being pleasant.',
+    'once the speaker is the one who died, everything you said about them is something they’re saying about themselves.',
+    'the last line is the one that has to give. let the room off the hook.',
+  ],
   rules: [
     {
       id: 'form',
@@ -96,4 +103,4 @@ export const EULOGY = {
       threshold: 0.6,
     },
   ],
-} as const satisfies Ladder
+} as const satisfies LadderFile

@@ -8,6 +8,7 @@ import { Aura } from './aura'
 import { Editor } from './editor'
 import { Finale } from './finale'
 import { GitHub, Restart } from './icons'
+import { iconButton, Nav } from './nav'
 import { Progress } from './progress'
 import { RuleHero } from './rule-hero'
 import { RuleList } from './rule-list'
@@ -45,13 +46,14 @@ export function Game({ ladder: info }: { ladder: LadderInfo }) {
           <h1 className="sr-only">{info.title}</h1>
           <div className="flex h-8 items-center justify-between gap-4">
             <Progress rules={ladder.rules} total={ladder.total} />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Nav ladder={info.id} />
               <a
                 href={REPO_URL}
                 target="_blank"
                 rel="noreferrer"
                 aria-label="source on github"
-                className="text-muted hover:text-ink grid size-8 place-items-center rounded-full transition-colors active:scale-95"
+                className={`${iconButton} max-sm:hidden`}
               >
                 <GitHub className="size-4" />
               </a>
@@ -91,6 +93,7 @@ export function Game({ ladder: info }: { ladder: LadderInfo }) {
         {showFinale ? (
           <Finale
             key="finale"
+            ladder={info.id}
             title={info.title}
             text={ladder.text}
             words={ladder.words}

@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { ImageResponse } from 'next/og'
-import { getLadder } from '~/lib/ladder'
+import { getToday } from '~/lib/ladder'
 import { hue } from '~/lib/palette'
 
 // Drawn per request from whatever ladder the API is serving, so a new ladder
@@ -30,7 +30,7 @@ export default async function Image() {
     font(400),
     font(600),
     // A crawler should still get a card if the API is down.
-    getLadder().catch(() => null),
+    getToday().catch(() => null),
   ])
 
   const title = ladder?.title ?? 'rungs'

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { EULOGY } from './eulogy'
+import EULOGY from '../../ladders/a-few-words/ladder'
 import { bannedHits, isDegenerate } from './rules'
 import { scoreLadder, type Judge } from './score'
 
