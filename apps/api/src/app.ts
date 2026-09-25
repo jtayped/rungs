@@ -1,26 +1,24 @@
-import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
-import { z } from 'zod'
+import { HTTPException } from 'hono/http-exception'
+import { auth } from './auth'
+import { withUser, type AppEnv } from './context'
 import { env } from './env'
-import { jev } from './jev'
-import { LADDER } from './ladder'
-import { scoreLadder } from './ladder/score'
+import { ladderRoutes } from './routes/ladders'
+import { solutionRoutes } from './routes/solutions'
 
-const scoreBody = z.object({
-  text: z.string().max(4000),
-  unlocked: z.number().int().min(1),
-})
-
-// Upcoming rules never leave the server: the player only ever sees what they
-// have unlocked.
-const app = new Hono()
+const app = new Hono<AppEnv>()
   .get('/health', (c) => c.json({ ok: true, commit: env.RUNGS_COMMIT }))
-  .get('/ladder', (c) => c.json({ id: LADDER.id, title: LADDER.title, total: LADDER.rules.length }))
-  .post('/ladder/score', zValidator('json', scoreBody), async (c) => {
-    const { text, unlocked } = c.req.valid('json')
-    return c.json(await scoreLadder(LADDER, text, unlocked, jev))
+  // better-auth owns everything under here. The web app forwards
+  // /api/auth/* unchanged, so the path matches its basePath.
+  .on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw))
+  .get('/me', withUser, (c) => {
+    const user = c.get('user')
+    return c.json(user ? { email: user.email, name: user.name || null } : null)
   })
+  .route('/ladders', ladderRoutes)
+  .route('/ladders', solutionRoutes)
   .onError((err, c) => {
+    if (err instanceof HTTPException) return err.getResponse()
     console.error(err)
     return c.json({ error: 'the judge is unavailable right now.' }, 502)
   })

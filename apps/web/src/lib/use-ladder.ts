@@ -47,8 +47,8 @@ export function useLadder(ladder: LadderInfo) {
       setPending(true)
 
       try {
-        const res = await api.ladder.score.$post(
-          { json: { text, unlocked } },
+        const res = await api.ladders[':id'].score.$post(
+          { param: { id: ladder.id }, json: { text, unlocked } },
           { init: { signal: ctl.signal } },
         )
         if (!res.ok) throw new Error(String(res.status))
@@ -80,7 +80,7 @@ export function useLadder(ladder: LadderInfo) {
         if (controller.current === ctl) setPending(false)
       }
     },
-    [commit],
+    [commit, ladder.id],
   )
 
   useEffect(() => {

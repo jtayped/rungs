@@ -16,20 +16,26 @@
     "probe": "secret-run bookline vercel.ai_gateway -- ./node_modules/.bin/tsx scripts/probe.ts",
     "test": "tsx --test src/**/*.test.ts",
     "typecheck": "tsc",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
     "@hono/zod-validator": "^0.9.1",
     "@t3-oss/env-core": "^0.13.11",
     "ai": "^7.0.111",
+    "better-auth": "^1.7.5",
+    "drizzle-orm": "^0.45.3",
     "hono": "^4.13.8",
+    "postgres": "^3.4.9",
+    "resend": "^6.28.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@rungs/eslint-config": "workspace:*",
     "@rungs/tsconfig": "workspace:*",
     "@types/node": "^22.19.0",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^10.11.0",
     "tsdown": "^0.23.0",
     "tsx": "^4.23.15",

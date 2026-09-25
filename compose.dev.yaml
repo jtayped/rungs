@@ -1,0 +1,14 @@
+# Local Postgres for `pnpm dev`. 5434 because 5432 is often taken already.
+#   docker compose -f compose.dev.yaml up -d
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: rungs
+      POSTGRES_PASSWORD: rungs
+      POSTGRES_DB: rungs
+    ports: ['5434:5432']
+    volumes: [rungs-dev-db:/var/lib/postgresql/data]
+
+volumes:
+  rungs-dev-db:

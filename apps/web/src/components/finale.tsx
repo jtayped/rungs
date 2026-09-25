@@ -3,8 +3,10 @@
 import { motion } from 'motion/react'
 import { useState } from 'react'
 import { Restart, Share } from './icons'
+import { PostSolution } from './post-solution'
 
 type Props = {
+  ladder: string
   title: string
   text: string
   words: number
@@ -13,7 +15,7 @@ type Props = {
   onClose: () => void
 }
 
-export function Finale({ title, text, words, best, onRestart, onClose }: Props) {
+export function Finale({ ladder, title, text, words, best, onRestart, onClose }: Props) {
   const [copied, setCopied] = useState(false)
 
   const share = async () => {
@@ -62,7 +64,9 @@ export function Finale({ title, text, words, best, onRestart, onClose }: Props) 
           {best === words ? ' · your best yet' : ''}
         </p>
 
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:flex">
+        <PostSolution ladder={ladder} text={text} />
+
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:flex">
           <button
             type="button"
             onClick={share}

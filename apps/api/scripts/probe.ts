@@ -4,7 +4,8 @@
 // says yes to everything.
 //
 //   pnpm --filter @rungs/api probe
-import '../src/env'
+// Only the gateway key is needed here, not the api's full env.
+process.env.AI_GATEWAY_API_KEY ||= process.env.VERCEL_AI_GATEWAY_API_KEY
 import { jev } from '../src/jev'
 
 const TEXTS: Record<string, string> = {
