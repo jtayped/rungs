@@ -28,5 +28,5 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
-      # The tests use a fake judge, so no gateway key is needed here.
+      # The tests use a fake judge, so no OpenRouter key is needed here.
       - run: pnpm turbo run lint typecheck test build

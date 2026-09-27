@@ -9,11 +9,11 @@
     }
   },
   "scripts": {
-    "dev": "secret-run bookline vercel.ai_gateway -- ./node_modules/.bin/tsx watch src/index.ts",
+    "dev": "secret-run personal rungs.openrouter -- ./node_modules/.bin/tsx watch src/index.ts",
     "dev:env": "tsx watch src/index.ts",
     "build": "tsdown",
     "start": "node dist/index.mjs",
-    "probe": "secret-run bookline vercel.ai_gateway -- ./node_modules/.bin/tsx scripts/probe.ts",
+    "probe": "secret-run personal rungs.openrouter -- ./node_modules/.bin/tsx scripts/probe.ts",
     "test": "tsx --test src/**/*.test.ts",
     "typecheck": "tsc",
     "lint": "eslint .",
@@ -22,6 +22,7 @@
   "dependencies": {
     "@hono/node-server": "^2.1.1",
     "@hono/zod-validator": "^0.9.1",
+    "@openrouter/ai-sdk-provider": "^3.1.0",
     "@t3-oss/env-core": "^0.13.11",
     "ai": "^7.0.111",
     "better-auth": "^1.7.5",
