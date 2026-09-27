@@ -2,8 +2,8 @@ import { createEnv } from '@t3-oss/env-core'
 import { z } from 'zod'
 
 // `pnpm dev` runs under secret-run, which exports the key under its own name.
-// The AI SDK looks for AI_GATEWAY_API_KEY.
-process.env.AI_GATEWAY_API_KEY ||= process.env.VERCEL_AI_GATEWAY_API_KEY
+// The OpenRouter provider looks for OPENROUTER_API_KEY.
+process.env.OPENROUTER_API_KEY ||= process.env.RUNGS_OPENROUTER_API_KEY
 
 // Local dev talks to compose.dev.yaml's Postgres with a throwaway auth secret.
 // In production both must be set.
@@ -11,7 +11,7 @@ const dev = process.env.NODE_ENV !== 'production'
 
 export const env = createEnv({
   server: {
-    AI_GATEWAY_API_KEY: z.string().min(1),
+    OPENROUTER_API_KEY: z.string().min(1),
     PORT: z.coerce.number().int().positive().default(3001),
     DATABASE_URL: dev ? z.url().default('postgres://rungs:rungs@localhost:5434/rungs') : z.url(),
     // Signs session cookies. Any long random string.

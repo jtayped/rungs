@@ -16,7 +16,7 @@ a set of rules is called a ladder. there's a new one each day, and every past la
 
 ## how jev is used
 
-[jev](https://typesafe.ai) is typesafe ai's classifier. you give it a text and a set of yes/no questions, and it returns a calibrated probability for each one. rungs calls it as `typesafe-ai/jev` through the vercel ai gateway, using the ai sdk's `experimental_evaluate`. the code is in `apps/api/src/jev.ts`.
+[jev](https://typesafe.ai) is typesafe ai's classifier. you give it a text and a set of yes/no questions, and it returns a calibrated probability for each one. rungs calls it as `~typesafe/jev-latest` through openrouter's decisions api, using the ai sdk's `experimental_evaluate` with `@openrouter/ai-sdk-provider`. the code is in `apps/api/src/jev.ts`.
 
 some rules are judgement calls, like "this is written in the form of a eulogy" or "the writer is angry". those are meter rules. each one is a statement plus a threshold, and it holds when jev's probability is above or below the line. every live meter rule goes into a single call, so eight rules still cost one round trip. rules that are plain counting, like a word limit or a banned word, are checked locally and never reach jev.
 
@@ -38,7 +38,7 @@ pnpm dev
 
 the compose file starts postgres on :5434. `pnpm dev` then starts the api on :3001 and the web app on :3000. the browser only ever talks to the web app, which forwards `/api/*` to the api.
 
-the api needs an ai gateway key. its `dev` script reads it from `secret-run bookline vercel.ai_gateway`, so the key never touches disk. without secret-run, copy `apps/api/.env.example` to `apps/api/.env.local`, fill in `AI_GATEWAY_API_KEY` and start the api with `pnpm --filter @rungs/api dev:env`.
+the api needs an openrouter key. its `dev` script reads it from `secret-run personal rungs.openrouter`, so the key never touches disk. without secret-run, copy `apps/api/.env.example` to `apps/api/.env.local`, fill in `OPENROUTER_API_KEY` and start the api with `pnpm --filter @rungs/api dev:env`.
 
 in dev, the database url and auth secret default to the compose postgres and a throwaway value. without a `RESEND_API_KEY`, sign-in codes are printed to the api's terminal.
 
@@ -73,7 +73,7 @@ pushes to `main` deploy to a self-hosted coolify instance. nothing builds on the
 
 only the web container has a domain. the api is reachable only inside the compose network, and the web app forwards `/api/*` to it.
 
-the workflow reads the `COOLIFY_WEBHOOK_URL` and `COOLIFY_TOKEN` secrets and the `COOLIFY_HEALTH_URLS` variable. the runtime secrets are set in coolify: `AI_GATEWAY_API_KEY`, `DATABASE_URL`, `BETTER_AUTH_SECRET` and `RESEND_API_KEY`, plus `EMAIL_FROM` if the default sender doesn't suit. the database is a `rungs` database with its own `rungs` role on postgres-general, the shared coolify postgres. the api joins the `coolify` docker network to reach it by container name, so it's never exposed through the stack. compose also sets `SITE_URL`, so link previews use absolute urls.
+the workflow reads the `COOLIFY_WEBHOOK_URL` and `COOLIFY_TOKEN` secrets and the `COOLIFY_HEALTH_URLS` variable. the runtime secrets are set in coolify: `OPENROUTER_API_KEY`, `DATABASE_URL`, `BETTER_AUTH_SECRET` and `RESEND_API_KEY`, plus `EMAIL_FROM` if the default sender doesn't suit. the database is a `rungs` database with its own `rungs` role on postgres-general, the shared coolify postgres. the api joins the `coolify` docker network to reach it by container name, so it's never exposed through the stack. compose also sets `SITE_URL`, so link previews use absolute urls.
 
 ## license
 

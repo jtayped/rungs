@@ -9,7 +9,7 @@ services:
     pull_policy: always
     restart: unless-stopped
     environment:
-      AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       # The rungs database on postgres-general, the shared Coolify Postgres,
       # reached by its container name over the coolify network.
       DATABASE_URL: ${DATABASE_URL}
