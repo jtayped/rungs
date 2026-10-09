@@ -51,6 +51,7 @@ export function useLadder(ladder: LadderInfo) {
           { param: { id: ladder.id }, json: { text, unlocked } },
           { init: { signal: ctl.signal } },
         )
+        if (res.status === 429) return setError('too many checks in a row. give it a minute.')
         if (!res.ok) throw new Error(String(res.status))
         const result = await res.json()
         if (ctl.signal.aborted) return

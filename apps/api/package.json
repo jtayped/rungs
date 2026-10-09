@@ -14,7 +14,7 @@
     "build": "tsdown",
     "start": "node dist/index.mjs",
     "probe": "secret-run personal rungs.openrouter -- ./node_modules/.bin/tsx scripts/probe.ts",
-    "test": "tsx --test src/**/*.test.ts",
+    "test": "tsx --test 'src/**/*.test.ts'",
     "typecheck": "tsc",
     "lint": "eslint .",
     "db:generate": "drizzle-kit generate"

@@ -56,7 +56,7 @@ to schedule one, add the folder and list it in `apps/api/ladders/index.ts`. on b
 
 once a ladder has posted solutions, the sync won't change its rules, because that would quietly invalidate every post. the title, hints and explanation still update.
 
-players start from a blank page on a new ladder because drafts are saved per ladder id. the link preview at `/opengraph-image` is drawn per request from today's title and rule count.
+players start from a blank page on a new ladder because drafts are saved per ladder id. the link preview at `/opengraph-image` is drawn from today's title and rule count and redrawn at most every ten minutes. the build has no api to read, so for the first ten minutes after a deploy it shows the plain rungs card.
 
 write meter statements about form, not fact. "this text is a eulogy" scored 0.96 on a normal draft and fell to 0.71 once the person who died turned out to be a router. "this text is written in the form of a eulogy" held through the joke.
 

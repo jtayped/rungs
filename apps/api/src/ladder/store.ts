@@ -9,13 +9,15 @@ type Row = typeof ladders.$inferSelect
 // Scoring runs after every pause in typing, so ladders are held in memory
 // briefly instead of read per request. A push shows up within a minute.
 const TTL = 60_000
-const cache = new Map<string, { row: Row | null; at: number }>()
+const cache = new Map<string, { row: Row; at: number }>()
 
 async function byId(id: string) {
   const hit = cache.get(id)
   if (hit && Date.now() - hit.at < TTL) return hit.row
   const [row] = await db.select().from(ladders).where(eq(ladders.id, id))
-  cache.set(id, { row: row ?? null, at: Date.now() })
+  // Misses aren't kept: ids come from the URL, so caching them would let
+  // anyone fill memory with made-up ones.
+  if (row) cache.set(id, { row, at: Date.now() })
   return row ?? null
 }
 

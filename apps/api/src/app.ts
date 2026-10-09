@@ -1,12 +1,18 @@
 import { Hono } from 'hono'
+import { bodyLimit } from 'hono/body-limit'
 import { HTTPException } from 'hono/http-exception'
 import { auth } from './auth'
+import { trustCloudflare } from './cloudflare'
 import { withUser, type AppEnv } from './context'
 import { env } from './env'
 import { ladderRoutes } from './routes/ladders'
 import { solutionRoutes } from './routes/solutions'
 
 const app = new Hono<AppEnv>()
+  // Bodies are read whole before validation, so cap them first. The largest
+  // real one is a 4000-character solution.
+  .use(bodyLimit({ maxSize: 32 * 1024 }))
+  .use(trustCloudflare)
   .get('/health', (c) => c.json({ ok: true, commit: env.RUNGS_COMMIT }))
   // better-auth owns everything under here. The web app forwards
   // /api/auth/* unchanged, so the path matches its basePath.
