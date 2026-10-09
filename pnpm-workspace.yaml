@@ -21,3 +21,10 @@ minimumReleaseAgeExclude:
   - motion@13.4.1
   - next@16.3.6
 autoInstallPeers: false
+# Next pins these below their security fixes (sharp: CVE-2026-96889 in its
+# bundled librsvg; source-map-js: event-loop DoS from crafted section offsets).
+# Each override only matches the vulnerable range, so it stops applying once
+# Next depends on fixed versions.
+overrides:
+  sharp@<0.35.5: ^0.35.5
+  source-map-js@<1.2.2: ^1.2.2
