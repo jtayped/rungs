@@ -17,19 +17,24 @@ export const displayName = z
   .trim()
   .min(1)
   .max(40)
-  .regex(/^[^\p{Cc}‪-‮⁦-⁩]*$/u)
+  .regex(/^[^\p{Cc}\u202A-\u202E\u2066-\u2069]*$/u)
 
 // better-auth stores whatever name and image the OTP sign-in and update-user
-// bodies carry. The app never shows an image, so none is accepted.
+// bodies carry, so the checked, trimmed name replaces the one sent. The app
+// never shows an image, so none is accepted.
 const checkUser = async (data: { name?: unknown; image?: unknown }) => {
-  if (data.image != null || (data.name && !displayName.safeParse(data.name).success)) {
+  const name = data.name ? displayName.safeParse(data.name) : undefined
+  if (data.image != null || name?.success === false) {
     throw new APIError('BAD_REQUEST', { message: 'pick a name of up to 40 characters.' })
   }
+  if (name?.success) return { data: { name: name.data } }
 }
 
 // The per-IP limit doesn't stop many IPs mailing one inbox, so each address
-// also gets only a few codes an hour.
+// also gets only a few codes an hour. +tags are dropped from the key because
+// they all reach the same inbox.
 const codesPerEmail = limiter(5, 60 * 60_000)
+const inbox = (email: string) => email.toLowerCase().replace(/\+[^@]*@/, '@')
 
 // Email-only accounts. A code rather than a link, because a link opened from a
 // mail app often lands in a different browser than the one playing.
@@ -39,6 +44,13 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   trustedOrigins: [env.SITE_URL],
   database: drizzleAdapter(db, { provider: 'pg', schema }),
+  // There are no passwords, but the email-OTP plugin still serves its reset
+  // routes, and they mail a code to any registered address.
+  disabledPaths: [
+    '/email-otp/request-password-reset',
+    '/forget-password/email-otp',
+    '/email-otp/reset-password',
+  ],
   session: { expiresIn: 60 * 60 * 24 * 90, updateAge: 60 * 60 * 24 },
   advanced: {
     // Cloudflare is in front and puts the visitor's address here. By the time a
@@ -55,10 +67,15 @@ export const auth = betterAuth({
   },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
-      if (
-        ctx.path === '/email-otp/send-verification-otp' &&
-        !codesPerEmail(String(ctx.body?.email).toLowerCase())
-      ) {
+      if (ctx.path !== '/email-otp/send-verification-otp') return
+      // This runs before better-auth validates the body. No real address is
+      // longer than 254, and a key cut from a longer string would keep the whole
+      // string alive in the limiter.
+      const email = String(ctx.body?.email)
+      if (email.length > 254) {
+        throw new APIError('BAD_REQUEST', { message: 'that isn’t an email address.' })
+      }
+      if (!codesPerEmail(inbox(email))) {
         throw new APIError('TOO_MANY_REQUESTS', { message: 'too many codes for that address.' })
       }
     }),

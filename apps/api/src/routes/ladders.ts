@@ -34,12 +34,13 @@ export const ladderRoutes = new Hono()
     if (!row) return c.json({ error: 'no such ladder.' }, 404)
     return c.json({ ...info(row), explanation: row.explanation, hints: row.hints }, 200)
   })
-  // Scoring calls Jev, which is paid per call. Typing pauses fire a few a
-  // minute; the daily cap bounds what one visitor can spend.
+  // Scoring calls Jev, which is paid per call. The client scores after every
+  // 450 ms pause in typing, about 130 a minute at most, so the minute cap sits
+  // above that and the daily cap bounds what one visitor can spend.
   .post(
     '/:id/score',
-    rateLimit(60, 60_000),
-    rateLimit(2000, 24 * 60 * 60_000),
+    rateLimit(150, 60_000),
+    rateLimit(10_000, 24 * 60 * 60_000),
     zValidator('json', scoreBody),
     async (c) => {
       const row = await getLadder(c.req.param('id'))
