@@ -32,7 +32,13 @@ function SignIn({ next }: { next: string }) {
     setBusy(true)
     const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: 'sign-in' })
     setBusy(false)
-    if (error) return setError('couldn’t send a code to that address.')
+    if (error) {
+      return setError(
+        error.status === 429
+          ? 'too many codes asked for. try again in a while.'
+          : 'couldn’t send a code to that address.',
+      )
+    }
     setError(null)
     setStep('code')
   }

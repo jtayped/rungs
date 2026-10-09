@@ -10,6 +10,21 @@ const config: NextConfig = {
   // root so the workspace packages land in the bundle too.
   output: 'standalone',
   outputFileTracingRoot: join(import.meta.dirname, '../..'),
+  poweredByHeader: false,
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          // No framing, so the sign-in and post buttons can't be clickjacked.
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
+        ],
+      },
+    ]
+  },
   async rewrites() {
     return [
       // better-auth sits under /api/auth on the API too, so its own paths and

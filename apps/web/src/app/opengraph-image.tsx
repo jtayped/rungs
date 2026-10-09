@@ -4,9 +4,11 @@ import { ImageResponse } from 'next/og'
 import { getToday } from '~/lib/ladder'
 import { hue } from '~/lib/palette'
 
-// Drawn per request from whatever ladder the API is serving, so a new ladder
-// gets a new card without anyone touching this file.
-export const dynamic = 'force-dynamic'
+// Drawn from whatever ladder the API is serving, so a new ladder gets a new
+// card without anyone touching this file. Redrawn at most every ten minutes:
+// rendering a PNG is the most expensive thing the web server does, and drawing
+// one per request would let anyone pin its CPU.
+export const revalidate = 600
 export const alt = 'rungs, a writing game'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
