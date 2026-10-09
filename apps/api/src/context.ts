@@ -1,5 +1,7 @@
+import { getIP } from 'better-auth/api'
 import { createMiddleware } from 'hono/factory'
 import { auth, type SessionUser } from './auth'
+import { limiter } from './limit'
 
 export type AppEnv = { Variables: { user: SessionUser | null } }
 
@@ -15,3 +17,15 @@ export const requireUser = createMiddleware<AppEnv>(async (c, next) => {
   if (!c.get('user')) return c.json({ error: 'sign in first.' }, 401)
   await next()
 })
+
+// Per visitor, keyed by the same address better-auth's own limiter reads.
+// Requests without one share a bucket.
+export const rateLimit = (max: number, windowMs: number) => {
+  const allow = limiter(max, windowMs)
+  return createMiddleware(async (c, next) => {
+    if (!allow(getIP(c.req.raw, auth.options) ?? 'unknown')) {
+      return c.json({ error: 'too many tries. give it a minute.' }, 429)
+    }
+    await next()
+  })
+}

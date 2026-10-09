@@ -1,6 +1,7 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { rateLimit } from '../context'
 import { jev } from '../jev'
 import { scoreLadder } from '../ladder/score'
 import { asLadder, getDaily, getLadder, listPast } from '../ladder/store'
@@ -33,9 +34,17 @@ export const ladderRoutes = new Hono()
     if (!row) return c.json({ error: 'no such ladder.' }, 404)
     return c.json({ ...info(row), explanation: row.explanation, hints: row.hints }, 200)
   })
-  .post('/:id/score', zValidator('json', scoreBody), async (c) => {
-    const row = await getLadder(c.req.param('id'))
-    if (!row) return c.json({ error: 'no such ladder.' }, 404)
-    const { text, unlocked } = c.req.valid('json')
-    return c.json(await scoreLadder(asLadder(row), text, unlocked, jev), 200)
-  })
+  // Scoring calls Jev, which is paid per call. Typing pauses fire a few a
+  // minute; the daily cap bounds what one visitor can spend.
+  .post(
+    '/:id/score',
+    rateLimit(60, 60_000),
+    rateLimit(2000, 24 * 60 * 60_000),
+    zValidator('json', scoreBody),
+    async (c) => {
+      const row = await getLadder(c.req.param('id'))
+      if (!row) return c.json({ error: 'no such ladder.' }, 404)
+      const { text, unlocked } = c.req.valid('json')
+      return c.json(await scoreLadder(asLadder(row), text, unlocked, jev), 200)
+    },
+  )
