@@ -2,11 +2,12 @@
 
 import { motion } from 'motion/react'
 import { useState } from 'react'
+import { track } from '~/lib/track'
 
 // One at a time, and only when asked. Later hints give more away than earlier
 // ones, so the player decides how much help they want. Every hint is in the
 // page's HTML, collapsed until it's shown.
-export function Hints({ hints }: { hints: string[] }) {
+export function Hints({ ladder, hints }: { ladder: string; hints: string[] }) {
   const [shown, setShown] = useState(0)
   if (!hints.length) return null
 
@@ -33,7 +34,10 @@ export function Hints({ hints }: { hints: string[] }) {
           <li>
             <button
               type="button"
-              onClick={() => setShown(shown + 1)}
+              onClick={() => {
+                setShown(shown + 1)
+                track('hint-shown', { ladder, hint: shown + 1 })
+              }}
               className="w-full px-5 py-4 text-left text-[15px] font-semibold"
             >
               {shown ? 'another hint' : 'show a hint'}

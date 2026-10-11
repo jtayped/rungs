@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
+import Script from 'next/script'
 import { MotionConfig } from '~/components/motion-config'
 import { env } from '~/env'
+import { ANALYTICS_PATH } from '~/lib/track'
 import './globals.css'
 
 // SF on Apple devices, Geist everywhere else.
@@ -35,6 +37,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {/* Animations made with motion follow the system's reduce-motion setting. */}
         <MotionConfig reducedMotion="user">{children}</MotionConfig>
+        {env.NEXT_PUBLIC_UMAMI_HOST && env.NEXT_PUBLIC_UMAMI_WEBSITE_ID ? (
+          <Script
+            src={`${ANALYTICS_PATH}/script.js`}
+            data-website-id={env.NEXT_PUBLIC_UMAMI_WEBSITE_ID}
+            // Only the site's own domain reports, so the same build served from
+            // localhost sends nothing.
+            data-domains={new URL(env.SITE_URL).hostname}
+          />
+        ) : null}
       </body>
     </html>
   )

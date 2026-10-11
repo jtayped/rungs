@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { api } from '~/lib/api'
 import { useAccount } from '~/lib/auth-client'
+import { track } from '~/lib/track'
 
 type Status =
   | { kind: 'idle' }
@@ -87,16 +88,28 @@ export function PostSolution({ ladder, text }: { ladder: string; text: string })
       return setStatus({ kind: 'error', message: 'couldn’t post that. try again in a moment.' })
     if (res.status === 201) {
       const { id, words } = await res.json()
+      track('solution-posted', { ladder, words, replaced: mine != null })
       setMine({ text: text.trim(), comment: comment.trim() || null, words })
       return setStatus({ kind: 'posted', id, words })
     }
     // Scores near a threshold can wobble between calls. Rare, and the fix is
     // the same as any broken rule: keep editing.
+    if (res.status === 422) {
+      return setStatus({
+        kind: 'error',
+        message: 'the judge read it again and a rule didn’t hold. nudge it and try once more.',
+      })
+    }
+    // The api's own refusals carry a message; a failed check on the body doesn't.
+    const body: unknown = await res.json().catch(() => null)
+    const said = (body as { error?: unknown } | null)?.error
     const message =
-      res.status === 422
-        ? 'the judge read it again and a rule didn’t hold. nudge it and try once more.'
-        : res.status === 400
-          ? 'comments are one line, with no links.'
+      res.status === 400
+        ? typeof said === 'string'
+          ? said
+          : 'names are up to 40 characters, and comments are one line with no links.'
+        : (res.status as number) === 503
+          ? 'the judge is out of checks for today. it’s back at midnight utc.'
           : 'couldn’t post that. try again in a moment.'
     setStatus({ kind: 'error', message })
   }

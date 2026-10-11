@@ -36,7 +36,7 @@ export default async function Solution({ params }: PageProps<'/solutions/[id]'>)
         </Link>{' '}
         that holds all {total} rules. rule 1 is “{first}”
       </p>
-      <Spoiler ladder={s.ladder} title={s.title} label="show the solution">
+      <Spoiler ladder={s.ladder} title={s.title} label="show the solution" where="solution">
         <article className="bg-sheet ring-hairline mt-10 rounded-[26px] p-5 ring-1 backdrop-blur-2xl sm:p-6">
           <Post text={s.text} comment={s.comment} />
         </article>

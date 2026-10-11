@@ -6,8 +6,8 @@ import { hue } from '~/lib/palette'
 import type { RuleView } from '~/lib/use-ladder'
 import { Meter } from './meter'
 
-// The newest rule, set large. It is the only instruction on the screen that
-// matters right now, so it gets the scale of a headline.
+// The newest rule, set as a headline: it's the one instruction that matters
+// right now.
 type Props = { rule: RuleView | undefined; empty: boolean; pending: boolean }
 
 export function RuleHero({ rule, empty, pending }: Props) {

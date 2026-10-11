@@ -5,7 +5,7 @@
 //
 //   pnpm --filter @rungs/api probe
 // Only the OpenRouter key is needed here, not the api's full env. It comes
-// from secret-run or apps/api/.env.local.
+// from the environment or apps/api/.env.local.
 try {
   process.loadEnvFile('.env.local')
 } catch {

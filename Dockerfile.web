@@ -12,13 +12,18 @@ COPY tooling/eslint/package.json tooling/eslint/
 COPY tooling/typescript/package.json tooling/typescript/
 RUN pnpm install --frozen-lockfile --filter @rungs/web...
 COPY . .
-# Next bakes the /api rewrite into the build, so the API's address is needed
-# now. `api` is its service name in compose.yaml. Prerendered pages and
-# robots.txt bake absolute URLs from SITE_URL the same way.
+# Next bakes the rewrites into the build, so the API's address is needed now.
+# `api` is its service name in compose.yaml. Prerendered pages and robots.txt
+# bake absolute URLs from SITE_URL the same way, so it has no default: a build
+# without it would quietly point every link preview at localhost. The Umami
+# values are optional and leave analytics off when unset.
 ARG API_URL=http://api:3001
-ARG SITE_URL=https://rungs.joeltaylor.business
-ENV API_URL=$API_URL SITE_URL=$SITE_URL NEXT_TELEMETRY_DISABLED=1
-RUN pnpm --filter @rungs/web build
+ARG SITE_URL
+ARG NEXT_PUBLIC_UMAMI_HOST
+ARG NEXT_PUBLIC_UMAMI_WEBSITE_ID
+ENV API_URL=$API_URL SITE_URL=$SITE_URL NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_PUBLIC_UMAMI_HOST=$NEXT_PUBLIC_UMAMI_HOST NEXT_PUBLIC_UMAMI_WEBSITE_ID=$NEXT_PUBLIC_UMAMI_WEBSITE_ID
+RUN : "${SITE_URL:?the SITE_URL build arg is required}" && pnpm --filter @rungs/web build
 
 FROM node:22-bookworm-slim
 ARG RUNGS_COMMIT=dev

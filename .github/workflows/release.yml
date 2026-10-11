@@ -60,8 +60,13 @@ jobs:
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ env.DEPLOY_SHA }}
+          # The web image bakes these in. They're repo variables, not secrets,
+          # since all three end up in the served pages.
           build-args: |
             RUNGS_COMMIT=${{ env.DEPLOY_SHA }}
+            SITE_URL=${{ vars.SITE_URL }}
+            NEXT_PUBLIC_UMAMI_HOST=${{ vars.UMAMI_HOST }}
+            NEXT_PUBLIC_UMAMI_WEBSITE_ID=${{ vars.UMAMI_WEBSITE_ID }}
           provenance: false
           sbom: false
           cache-from: type=registry,ref=ghcr.io/jtayped/rungs-${{ matrix.app }}:buildcache

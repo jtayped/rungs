@@ -13,7 +13,6 @@ export const withUser = createMiddleware<AppEnv>(async (c, next) => {
   await next()
 })
 
-// A real account, not an anonymous session.
 export const requireUser = createMiddleware<AppEnv>(async (c, next) => {
   const user = c.get('user')
   if (!user || user.isAnonymous) return c.json({ error: 'sign in first.' }, 401)

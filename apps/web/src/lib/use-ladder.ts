@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type LadderInfo, type RuleResult, type Score } from './api'
 import { openSession } from './auth-client'
 import { localDraft } from './storage'
+import { track } from './track'
 
 type Saved = { text: string; unlocked: number; best: number | null }
 const EMPTY: Saved = { text: '', unlocked: 1, best: null }
@@ -68,6 +69,7 @@ export function useLadder(ladder: LadderInfo) {
         setFresh(result.revealed)
         navigator.vibrate?.(12)
         setReveals((n) => n + 1)
+        track('rule-unlocked', { ladder: ladder.id, rule: result.unlocked, total: ladder.total })
       } else {
         setFresh(null)
       }
@@ -75,11 +77,18 @@ export function useLadder(ladder: LadderInfo) {
       if (result.cleared && !wasCleared.current) setCelebrate(true)
       wasCleared.current = result.cleared
 
+      // Counted where the best changes, since the finale also plays again when
+      // a cleared ladder is reopened.
       if (result.cleared && (current.best == null || result.words < current.best)) {
+        track('ladder-cleared', {
+          ladder: ladder.id,
+          words: result.words,
+          first: current.best == null,
+        })
         commit({ ...latest.current!, best: result.words })
       }
     },
-    [commit],
+    [commit, ladder.id, ladder.total],
   )
 
   // `keepalive` lets the request finish after the page is gone.
@@ -107,17 +116,26 @@ export function useLadder(ladder: LadderInfo) {
         // No session yet: this is the player's first judged draft.
         if (res.status === 401) {
           if (!(await openSession())) {
-            return setError('too many new players from your network. give it a minute.')
+            if (!ctl.signal.aborted) {
+              setError('too many new players from your network. give it a minute.')
+            }
+            return
           }
           res = await post()
-          if (res.status === 401) {
-            return setError('this browser is blocking cookies, and the game needs one to judge.')
-          }
         }
-        if (res.status === 429) return setError('too many checks in a row. give it a minute.')
+        // A newer judge has started, and only its answer counts.
+        if (ctl.signal.aborted) return
+        if (res.status === 401) {
+          return setError('this browser is blocking cookies, and the game needs one to judge.')
+        }
+        if (res.status === 429) {
+          track('judge-error', { ladder: ladder.id, kind: 'rate-limit' })
+          return setError('too many checks in a row. give it a minute.')
+        }
         // The judge's daily budget is spent. 503 isn't among the route's typed
         // responses.
         if ((res.status as number) === 503) {
+          track('judge-error', { ladder: ladder.id, kind: 'budget' })
           return setError('the judge is out of checks for today. it’s back at midnight utc.')
         }
         if (!res.ok) throw new Error(String(res.status))
@@ -126,7 +144,10 @@ export function useLadder(ladder: LadderInfo) {
         lastScore.set(ladder.id, { key, score: result })
         apply(result)
       } catch {
-        if (!ctl.signal.aborted) setError('couldn’t reach the judge. keep writing, it’ll catch up.')
+        if (!ctl.signal.aborted) {
+          track('judge-error', { ladder: ladder.id, kind: 'network' })
+          setError('couldn’t reach the judge. keep writing, it’ll catch up.')
+        }
       } finally {
         if (controller.current === ctl) setPending(false)
       }
@@ -173,6 +194,8 @@ export function useLadder(ladder: LadderInfo) {
       } catch {
         // Not the same as having no draft: opening empty would save over it.
         if (!live) return
+        // Once per visit, not once per retry.
+        if (!retry) track('judge-error', { ladder: ladder.id, kind: 'load' })
         setError('couldn’t load your draft. trying again.')
         retry = setTimeout(load, LOAD_RETRY)
       }
@@ -208,6 +231,7 @@ export function useLadder(ladder: LadderInfo) {
   const restart = useCallback(() => {
     if (!latest.current) return
     if (latest.current.text.trim() && !confirm('start over? this clears your draft.')) return
+    track('restart', { ladder: ladder.id, rule: latest.current.unlocked })
     if (timer.current) clearTimeout(timer.current)
     timer.current = null
     commit({ ...latest.current, text: '', unlocked: 1 })
@@ -216,7 +240,7 @@ export function useLadder(ladder: LadderInfo) {
     setCelebrate(false)
     wasCleared.current = false
     void judge('', 1)
-  }, [commit, judge])
+  }, [commit, judge, ladder.id])
 
   const rules: RuleView[] = (score?.rules ?? []).map((rule, index, all) => ({
     ...rule,

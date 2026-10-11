@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { formatDate } from './page'
 
-// A post's text and the player's comment on it.
 export function Post({ text, comment }: { text: string; comment: string | null }) {
   return (
     <>

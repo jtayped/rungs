@@ -37,11 +37,11 @@ for (const range of RANGES) {
   cloudflare.addSubnet(network, Number(bits), family(network))
 }
 
-// The origin's address is public, so anyone can skip Cloudflare and send their
-// own cf-connecting-ip. Traefik appends the address that connected to it to
-// x-forwarded-for, and the Next rewrite adds no hop, so the last entry is who
-// reached the server. Unless that is Cloudflare, the header is replaced with
-// it, and every limiter downstream keys on the real sender.
+// A request that skips Cloudflare can send its own cf-connecting-ip. The
+// reverse proxy appends the address that connected to it to x-forwarded-for,
+// and the Next rewrite adds no hop, so the last entry is who reached the
+// server. Unless that is Cloudflare, the header is replaced with it, and every
+// limiter downstream keys on the real sender.
 export const trustCloudflare = createMiddleware(async (c, next) => {
   const peer = c.req.header('x-forwarded-for')?.split(',').at(-1)?.trim() ?? ''
   const known = isIP(peer) !== 0

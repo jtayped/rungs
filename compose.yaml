@@ -1,8 +1,8 @@
 # The production stack. GitHub Actions builds both images and pushes them to
 # GHCR; nothing is built on the host. Coolify runs its own copy of this file,
-# so a change here reaches production only once it's made there too. Only web gets a
-# domain. It reaches the API over this compose network and forwards /api/* to
-# it, so the API is never public.
+# so a change here reaches production only once it's made there too.
+# Only web gets a domain. It reaches the API over this compose network and
+# forwards /api/* to it, so the API is never public.
 services:
   api:
     image: ghcr.io/jtayped/rungs-api:${TAG:-main}
@@ -11,15 +11,13 @@ services:
     restart: unless-stopped
     environment:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      # The rungs database on postgres-general, the shared Coolify Postgres,
-      # reached by its container name over the coolify network.
+      # A Postgres on the coolify network, reached by its container name.
       DATABASE_URL: ${DATABASE_URL}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       RESEND_API_KEY: ${RESEND_API_KEY}
       EMAIL_FROM: ${EMAIL_FROM}
       SITE_URL: https://rungs.joeltaylor.business
-    # Default keeps web able to reach the api; coolify is where the shared
-    # Postgres lives.
+    # default keeps web able to reach the api; coolify is where the database is.
     networks: [default, coolify]
     deploy:
       resources:

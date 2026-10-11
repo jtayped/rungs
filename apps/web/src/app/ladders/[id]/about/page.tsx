@@ -27,7 +27,7 @@ export default async function About({ params }: PageProps<'/ladders/[id]/about'>
       >
         play it
       </Link>
-      <Hints hints={ladder.hints} />
+      <Hints ladder={ladder.id} hints={ladder.hints} />
       <Spoiler ladder={ladder.id} title={ladder.title}>
         {ladder.explanation ? (
           <article className="mt-10">

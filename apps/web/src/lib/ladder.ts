@@ -6,8 +6,11 @@ import { env } from '~/env'
 
 // Server-side reads straight from the API. Everything here is public. The
 // solution list can take the viewer's cookie, but only so it can mark their
-// own post.
-const server = hc<AppType>(env.API_URL)
+// own post. A read that hangs fails after 5 s instead of holding the page.
+const server = hc<AppType>(env.API_URL, {
+  fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+    fetch(input, { ...init, signal: AbortSignal.timeout(5000) }),
+})
 
 export const getLadder = cache(async (id: string) => {
   const res = await server.ladders[':id'].$get({ param: { id } })

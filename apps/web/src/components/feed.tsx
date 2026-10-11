@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { api, type FeedPage } from '~/lib/api'
 import { useSpoilers } from '~/lib/progress'
+import { track } from '~/lib/track'
 import { Byline, Post } from './post'
 import { SpoilerDialog } from './spoiler'
 
@@ -116,6 +117,7 @@ export function Feed({ first }: { first: FeedPage | null }) {
           title={asking.title}
           onShow={(all) => {
             show(asking.ladder, all)
+            track('spoiler-shown', { ladder: asking.ladder, all, where: 'feed' })
             setAsking(null)
           }}
           onClose={() => setAsking(null)}

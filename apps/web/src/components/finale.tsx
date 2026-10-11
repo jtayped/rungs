@@ -2,6 +2,7 @@
 
 import { motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
+import { track } from '~/lib/track'
 import { Restart, Share } from './icons'
 import { PostSolution } from './post-solution'
 
@@ -33,8 +34,12 @@ export function Finale({ ladder, title, text, words, best, onRestart, onClose }:
   const share = async () => {
     const body = `${text.trim()}\n\n— ${title}`
     try {
-      if (navigator.share) return await navigator.share({ text: body })
+      if (navigator.share) {
+        await navigator.share({ text: body })
+        return track('share', { ladder, method: 'share' })
+      }
       await navigator.clipboard.writeText(body)
+      track('share', { ladder, method: 'copy' })
       setCopied(true)
       setTimeout(() => setCopied(false), 1800)
     } catch {

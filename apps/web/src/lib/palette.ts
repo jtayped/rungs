@@ -1,6 +1,6 @@
 // One colour per rule, walking the spectrum as the ladder climbs, and cycling
-// for ladders longer than the palette. Used for
-// fills, rings and the aura, never for body text: yellow on white fails.
+// for ladders longer than the palette. Used for fills, rings and the aura,
+// never for text: yellow on white fails.
 export const HUES = [
   '#0a84ff', // blue
   '#5e5ce6', // indigo
