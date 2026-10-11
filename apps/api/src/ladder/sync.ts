@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { isDeepStrictEqual } from 'node:util'
 import { count, eq } from 'drizzle-orm'
 import { LADDERS } from '../../ladders'
 import { db } from '../db/client'
@@ -30,7 +31,8 @@ export async function syncLadders() {
       .from(solutions)
       .where(eq(solutions.ladderId, ladder.id))
     const n = posted?.n ?? 0
-    const locked = n > 0 && JSON.stringify(existing.rules) !== JSON.stringify(ladder.rules)
+    // jsonb hands keys back in its own order, so compare values, not strings.
+    const locked = n > 0 && !isDeepStrictEqual(existing.rules, ladder.rules)
     if (locked) console.warn(`ladder ${ladder.id}: ${n} posted solutions, keeping its old rules.`)
 
     await db

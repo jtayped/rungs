@@ -36,6 +36,10 @@ const checkUser = async (data: { name?: unknown; image?: unknown }) => {
 // also gets only a few codes an hour. +tags are dropped from the key because
 // they all reach the same inbox.
 const codesPerEmail = limiter(5, 60 * 60_000)
+// Codes to addresses that don't exist bounce, and Resend pauses a sender that
+// bounces too often, so sign-in stops for everyone either way. A cap on all
+// codes keeps a script to an hour of that rather than a paused account.
+const codesInAll = limiter(50, 60 * 60_000)
 const inbox = (email: string) => email.toLowerCase().replace(/\+[^@]*@/, '@')
 
 // Email-only accounts, plus an anonymous one for every player who hasn't signed
@@ -72,6 +76,11 @@ export const auth = betterAuth({
   },
   databaseHooks: {
     user: { create: { before: checkUser }, update: { before: checkUser } },
+    // Nothing reads a session's IP or browser, and every player has a session,
+    // so neither is kept.
+    session: {
+      create: { before: async (s) => ({ data: { ...s, ipAddress: null, userAgent: null } }) },
+    },
   },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
@@ -85,6 +94,11 @@ export const auth = betterAuth({
       }
       if (!codesPerEmail(inbox(email))) {
         throw new APIError('TOO_MANY_REQUESTS', { message: 'too many codes for that address.' })
+      }
+      if (!codesInAll('all')) {
+        throw new APIError('TOO_MANY_REQUESTS', {
+          message: 'lots of people are signing in. try again in a few minutes.',
+        })
       }
     }),
   },

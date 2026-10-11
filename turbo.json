@@ -10,19 +10,21 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"],
-      "env": ["API_URL"]
+      "env": ["API_URL", "SITE_URL"]
     },
     "start": {
       "dependsOn": ["build"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["API_URL", "SITE_URL"]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],
       "outputs": []
     },
     "test": {
-      "outputs": []
+      "outputs": [],
+      "env": ["DATABASE_URL"]
     },
     "lint": {
       "dependsOn": ["^lint"],
