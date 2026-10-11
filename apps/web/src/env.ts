@@ -4,9 +4,9 @@ import { z } from 'zod'
 export const env = createEnv({
   server: {
     API_URL: z.url().default('http://localhost:3001'),
-    // Public origin, so og:image and friends are absolute. Next falls back to
-    // localhost when it's unset, which is right for dev.
-    SITE_URL: z.url().optional(),
+    // Public origin, so og:image, robots.txt and the sitemap use absolute URLs.
+    // Prerendered pages read it at build time.
+    SITE_URL: z.url().default('http://localhost:3000'),
   },
   client: {},
   runtimeEnv: {

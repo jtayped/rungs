@@ -6,9 +6,15 @@ import './globals.css'
 // SF on Apple devices, Geist everywhere else.
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
 
+// Pages set only a title and description. Next copies those into og:* and
+// twitter:*, and a page that set its own `openGraph` would replace this one
+// whole, og:image included.
 export const metadata: Metadata = {
-  metadataBase: env.SITE_URL ? new URL(env.SITE_URL) : undefined,
-  description: 'a writing game',
+  metadataBase: new URL(env.SITE_URL),
+  title: { default: 'rungs · a writing game', template: '%s · rungs' },
+  description:
+    'a writing game. you get one rule and write until it holds. then the next rule arrives, and every rule before it has to keep holding.',
+  openGraph: { siteName: 'rungs', type: 'website', locale: 'en_US' },
   twitter: { card: 'summary_large_image' },
 }
 

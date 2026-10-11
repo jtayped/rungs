@@ -14,12 +14,19 @@ const scoreBody = z.object({
 })
 
 // What the web app may know about a ladder before playing it. Rule text never
-// leaves the server: the player only ever sees what they have unlocked.
-const info = (row: { id: string; title: string; date: string; rules: readonly unknown[] }) => ({
+// leaves the server: the player only ever sees what they have unlocked. Rule 1
+// is the exception, since it's on screen the moment a ladder opens.
+const info = (row: {
+  id: string
+  title: string
+  date: string
+  rules: readonly { text: string }[]
+}) => ({
   id: row.id,
   title: row.title,
   date: row.date,
   total: row.rules.length,
+  first: row.rules[0]!.text,
 })
 
 export const ladderRoutes = new Hono<AppEnv>()
@@ -28,11 +35,9 @@ export const ladderRoutes = new Hono<AppEnv>()
     const rows = await listLadders()
     return c.json(
       {
-        // Rule 1 is on screen the moment a ladder opens, so it can be shown
-        // before playing.
         ladders: rows
           .filter((r) => isOut(r, day))
-          .map((r) => ({ ...info(r), first: r.rules[0]!.text, solutions: r.solutions })),
+          .map((r) => ({ ...info(r), solutions: r.solutions })),
         // Only the date and size of a ladder that isn't out yet, so its title
         // and rules can still change before anyone sees them.
         upcoming: rows
