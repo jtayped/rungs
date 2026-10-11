@@ -34,7 +34,7 @@ export function Hints({ hints }: { hints: string[] }) {
             <button
               type="button"
               onClick={() => setShown(shown + 1)}
-              className="text-hue w-full px-5 py-4 text-left text-[15px] font-semibold"
+              className="w-full px-5 py-4 text-left text-[15px] font-semibold"
             >
               {shown ? 'another hint' : 'show a hint'}
               <span className="text-muted ml-2 font-normal tabular-nums">

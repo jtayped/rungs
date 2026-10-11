@@ -17,6 +17,16 @@ export type RuleView = RuleResult & { index: number; state: RuleState }
 const TYPING_PAUSE = 450
 // Long enough for the new rule to land on screen before it gets judged.
 const REVEAL_BEAT = 1100
+const LOAD_RETRY = 3000
+
+// What one judge call answers: the same trimmed text at the same unlock count
+// always scores the same.
+const judgeKey = (text: string, unlocked: number) => `${unlocked}:${text.trim()}`
+
+// The last answer per ladder, kept across page changes, so reopening a ladder
+// or pausing on unchanged text doesn't pay for a call whose answer is known.
+// It only counts while nothing newer has been sent.
+const lastScore = new Map<string, { key: string; score: Score }>()
 
 export function useLadder(ladder: LadderInfo) {
   const [saved, setSaved] = useState<Saved | null>(null)
@@ -27,12 +37,16 @@ export function useLadder(ladder: LadderInfo) {
   // The finale plays once per clear, not on every keystroke while it holds.
   const [celebrate, setCelebrate] = useState(false)
   const wasCleared = useRef(false)
-  // After a reveal, the same text is judged again against the new rule.
-  const [followUp, setFollowUp] = useState<{ text: string; unlocked: number } | null>(null)
+  // Counts reveals. Each one judges the draft again against the new rule.
+  const [reveals, setReveals] = useState(0)
 
   const controller = useRef<AbortController | null>(null)
+  // The one judge waiting to go, after a typing pause or a reveal. Null once
+  // it has gone.
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const latest = useRef<Saved | null>(null)
+  // The last draft sent to the judge, which the server saved.
+  const sent = useRef<string | null>(null)
 
   // The server saves the draft each time it's judged, so this is just state.
   const commit = useCallback((next: Saved) => {
@@ -40,8 +54,43 @@ export function useLadder(ladder: LadderInfo) {
     setSaved(next)
   }, [])
 
+  const apply = useCallback(
+    (result: Score) => {
+      setScore(result)
+      setError(null)
+      const current = latest.current!
+
+      // The server's count wins: it never lets the client past what the
+      // judge has revealed.
+      if (result.unlocked !== current.unlocked) commit({ ...current, unlocked: result.unlocked })
+
+      if (result.revealed) {
+        setFresh(result.revealed)
+        navigator.vibrate?.(12)
+        setReveals((n) => n + 1)
+      } else {
+        setFresh(null)
+      }
+
+      if (result.cleared && !wasCleared.current) setCelebrate(true)
+      wasCleared.current = result.cleared
+
+      if (result.cleared && (current.best == null || result.words < current.best)) {
+        commit({ ...latest.current!, best: result.words })
+      }
+    },
+    [commit],
+  )
+
+  // `keepalive` lets the request finish after the page is gone.
   const judge = useCallback(
-    async (text: string, unlocked: number) => {
+    async (text: string, unlocked: number, keepalive = false) => {
+      const key = judgeKey(text, unlocked)
+      const known = lastScore.get(ladder.id)
+      sent.current = key
+      if (known?.key === key) return apply(known.score)
+      lastScore.delete(ladder.id)
+
       controller.current?.abort()
       const ctl = new AbortController()
       controller.current = ctl
@@ -50,7 +99,7 @@ export function useLadder(ladder: LadderInfo) {
       const post = () =>
         api.ladders[':id'].score.$post(
           { param: { id: ladder.id }, json: { text, unlocked } },
-          { init: { signal: ctl.signal } },
+          { init: { signal: ctl.signal, keepalive } },
         )
 
       try {
@@ -66,82 +115,101 @@ export function useLadder(ladder: LadderInfo) {
           }
         }
         if (res.status === 429) return setError('too many checks in a row. give it a minute.')
+        // The judge's daily budget is spent. 503 isn't among the route's typed
+        // responses.
+        if ((res.status as number) === 503) {
+          return setError('the judge is out of checks for today. it’s back at midnight utc.')
+        }
         if (!res.ok) throw new Error(String(res.status))
         const result = await res.json()
         if (ctl.signal.aborted) return
-
-        setScore(result)
-        setError(null)
-        const current = latest.current!
-
-        // The server's count wins: it never lets the client past what the
-        // judge has revealed.
-        if (result.unlocked !== current.unlocked) commit({ ...current, unlocked: result.unlocked })
-
-        if (result.revealed) {
-          setFresh(result.revealed)
-          navigator.vibrate?.(12)
-          setFollowUp({ text, unlocked: result.unlocked })
-        } else {
-          setFresh(null)
-        }
-
-        if (result.cleared && !wasCleared.current) setCelebrate(true)
-        wasCleared.current = result.cleared
-
-        if (result.cleared && (current.best == null || result.words < current.best)) {
-          commit({ ...latest.current!, best: result.words })
-        }
+        lastScore.set(ladder.id, { key, score: result })
+        apply(result)
       } catch {
         if (!ctl.signal.aborted) setError('couldn’t reach the judge. keep writing, it’ll catch up.')
       } finally {
         if (controller.current === ctl) setPending(false)
       }
     },
-    [commit, ladder.id],
+    [apply, ladder.id],
   )
+
+  // Replaces whatever judge was waiting, and always judges the draft as it is
+  // when the wait ends.
+  const judgeLater = useCallback(
+    (ms: number) => {
+      if (timer.current) clearTimeout(timer.current)
+      timer.current = setTimeout(() => {
+        timer.current = null
+        void judge(latest.current!.text, latest.current!.unlocked)
+      }, ms)
+    },
+    [judge],
+  )
+
+  // A draft still waiting out the typing pause is sent now, so leaving the
+  // page doesn't drop the last words.
+  const flush = useCallback(() => {
+    if (!timer.current) return
+    clearTimeout(timer.current)
+    timer.current = null
+    const { text, unlocked } = latest.current!
+    if (judgeKey(text, unlocked) !== sent.current) void judge(text, unlocked, true)
+  }, [judge])
 
   useEffect(() => {
     let live = true
-    void api.me.progress[':id']
-      .$get({ param: { id: ladder.id } })
-      .then((r) => (r.ok ? r.json() : null))
-      .catch(() => null)
-      .then((server) => {
+    let retry: ReturnType<typeof setTimeout> | undefined
+    const load = async () => {
+      try {
+        const res = await api.me.progress[':id'].$get({ param: { id: ladder.id } })
+        if (!res.ok) throw new Error(String(res.status))
+        const server = await res.json()
         if (!live) return
         const initial = server ?? { ...EMPTY, ...localDraft(ladder.id) }
+        setError(null)
         commit(initial)
         void judge(initial.text, initial.unlocked)
-      })
+      } catch {
+        // Not the same as having no draft: opening empty would save over it.
+        if (!live) return
+        setError('couldn’t load your draft. trying again.')
+        retry = setTimeout(load, LOAD_RETRY)
+      }
+    }
+    void load()
     return () => {
       live = false
-      controller.current?.abort()
-      if (timer.current) clearTimeout(timer.current)
+      clearTimeout(retry)
     }
   }, [commit, judge, ladder.id])
 
   useEffect(() => {
-    if (!followUp) return
-    // Held in `timer` too, so typing during the beat replaces it.
-    const t = setTimeout(() => void judge(followUp.text, followUp.unlocked), REVEAL_BEAT)
-    timer.current = t
-    return () => clearTimeout(t)
-  }, [followUp, judge])
+    window.addEventListener('pagehide', flush)
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      flush()
+    }
+  }, [flush])
+
+  useEffect(() => {
+    if (reveals) judgeLater(REVEAL_BEAT)
+  }, [reveals, judgeLater])
 
   const write = useCallback(
     (text: string) => {
-      const current = latest.current
-      if (!current) return
-      commit({ ...current, text })
-      if (timer.current) clearTimeout(timer.current)
-      timer.current = setTimeout(() => void judge(text, latest.current!.unlocked), TYPING_PAUSE)
+      if (!latest.current) return
+      commit({ ...latest.current, text })
+      judgeLater(TYPING_PAUSE)
     },
-    [commit, judge],
+    [commit, judgeLater],
   )
 
   const restart = useCallback(() => {
     if (!latest.current) return
+    if (latest.current.text.trim() && !confirm('start over? this clears your draft.')) return
     if (timer.current) clearTimeout(timer.current)
+    timer.current = null
     commit({ ...latest.current, text: '', unlocked: 1 })
     setFresh(null)
     setScore(null)

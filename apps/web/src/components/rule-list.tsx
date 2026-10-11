@@ -13,7 +13,10 @@ export function RuleList({ rules, empty }: { rules: RuleView[]; empty: boolean }
   return (
     <section aria-label="earlier rules">
       <h3 className="text-muted mb-3 px-1 text-[13px] font-medium">still has to hold</h3>
-      <ul className="bg-sheet ring-hairline overflow-hidden rounded-[26px] ring-1 backdrop-blur-2xl">
+      <ul
+        aria-live="polite"
+        className="bg-sheet ring-hairline overflow-hidden rounded-[26px] ring-1 backdrop-blur-2xl"
+      >
         <AnimatePresence initial={false}>
           {[...rules].reverse().map((rule) => (
             <motion.li

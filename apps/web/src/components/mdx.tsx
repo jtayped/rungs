@@ -15,9 +15,7 @@ const components = {
   ol: (p: React.ComponentProps<'ol'>) => (
     <ol className="mt-3 list-decimal space-y-1.5 pl-5" {...p} />
   ),
-  a: (p: React.ComponentProps<'a'>) => (
-    <a className="text-hue underline underline-offset-4" {...p} />
-  ),
+  a: (p: React.ComponentProps<'a'>) => <a className="underline underline-offset-4" {...p} />,
   blockquote: (p: React.ComponentProps<'blockquote'>) => (
     <blockquote className="border-hairline text-muted mt-4 border-l-2 pl-4" {...p} />
   ),

@@ -6,8 +6,11 @@ import { api } from '~/lib/api'
 export function RemoveMine({ ladder }: { ladder: string }) {
   const router = useRouter()
   const remove = async () => {
-    await api.ladders[':id'].solutions.mine.$delete({ param: { id: ladder } })
-    router.refresh()
+    if (!confirm('remove your solution? this can’t be undone.')) return
+    const res = await api.ladders[':id'].solutions.mine
+      .$delete({ param: { id: ladder } })
+      .catch(() => null)
+    if (res?.ok) router.refresh()
   }
   return (
     <button

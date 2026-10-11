@@ -89,6 +89,13 @@ export function Game({ ladder: info }: { ladder: LadderInfo }) {
             </div>
           </div>
         </motion.main>
+      ) : ladder.error ? (
+        <p
+          role="status"
+          className="text-muted grid min-h-svh place-items-center px-6 text-center text-[17px]"
+        >
+          {ladder.error}
+        </p>
       ) : null}
 
       <AnimatePresence>

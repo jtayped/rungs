@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'motion/react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Restart, Share } from './icons'
 import { PostSolution } from './post-solution'
 
@@ -15,8 +15,20 @@ type Props = {
   onClose: () => void
 }
 
+// A modal dialog, so focus moves into it, Escape closes it and the editor
+// behind can't take keystrokes that would change the text being posted.
 export function Finale({ ladder, title, text, words, best, onRestart, onClose }: Props) {
   const [copied, setCopied] = useState(false)
+  const ref = useRef<HTMLDialogElement>(null)
+  const heading = useRef<HTMLHeadingElement>(null)
+
+  useEffect(() => {
+    // Strict mode runs this twice, and the second call would find it open.
+    if (!ref.current?.open) ref.current?.showModal()
+    // The heading takes focus rather than the first field, which would open
+    // the keyboard on a phone.
+    heading.current?.focus()
+  }, [])
 
   const share = async () => {
     const body = `${text.trim()}\n\n— ${title}`
@@ -31,15 +43,20 @@ export function Finale({ ladder, title, text, words, best, onRestart, onClose }:
   }
 
   return (
-    <motion.div
-      role="dialog"
-      aria-modal
+    <motion.dialog
+      ref={ref}
       aria-labelledby="finale-title"
+      // Escape closes it the same way "keep editing" does, so it fades out.
+      onCancel={(e) => {
+        e.preventDefault()
+        onClose()
+      }}
+      onClose={onClose}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6 }}
-      className="bg-ground/60 fixed inset-0 z-50 overflow-y-auto backdrop-blur-3xl"
+      className="bg-ground/60 text-ink fixed inset-0 m-0 size-full max-h-none max-w-none overflow-y-auto backdrop-blur-3xl backdrop:bg-transparent"
     >
       <motion.div
         initial={{ opacity: 0, y: 40, scale: 0.98 }}
@@ -49,8 +66,10 @@ export function Finale({ ladder, title, text, words, best, onRestart, onClose }:
       >
         <p className="text-muted text-[15px] font-medium">{title}</p>
         <h2
+          ref={heading}
           id="finale-title"
-          className="font-display mt-2 text-[clamp(3rem,13vw,6.5rem)] leading-[0.95] font-semibold tracking-[-0.05em]"
+          tabIndex={-1}
+          className="font-display mt-2 text-[clamp(3rem,13vw,6.5rem)] leading-[0.95] font-semibold tracking-[-0.05em] outline-none"
         >
           every rule holds.
         </h2>
@@ -92,6 +111,6 @@ export function Finale({ ladder, title, text, words, best, onRestart, onClose }:
           keep editing
         </button>
       </motion.div>
-    </motion.div>
+    </motion.dialog>
   )
 }
