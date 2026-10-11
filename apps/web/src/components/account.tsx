@@ -65,30 +65,41 @@ function SignIn({ next }: { next: string }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // A dropped connection throws instead of returning an error.
   const send = async (e: React.FormEvent) => {
     e.preventDefault()
     setBusy(true)
-    const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: 'sign-in' })
-    setBusy(false)
-    if (error) {
-      return setError(
-        error.status === 429
-          ? 'too many codes asked for. try again in a while.'
-          : 'couldn’t send a code to that address.',
-      )
+    try {
+      const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: 'sign-in' })
+      if (error) {
+        return setError(
+          error.status === 429
+            ? 'too many codes asked for. try again in a while.'
+            : 'couldn’t send a code to that address.',
+        )
+      }
+      setError(null)
+      setStep('code')
+    } catch {
+      setError('couldn’t send a code to that address.')
+    } finally {
+      setBusy(false)
     }
-    setError(null)
-    setStep('code')
   }
 
   const verify = async (e: React.FormEvent) => {
     e.preventDefault()
     setBusy(true)
-    const { error } = await authClient.signIn.emailOtp({ email, otp: code.trim() })
-    setBusy(false)
-    if (error) return setError('that code didn’t work. check it, or send a new one.')
-    router.push(next)
-    router.refresh()
+    try {
+      const { error } = await authClient.signIn.emailOtp({ email, otp: code.trim() })
+      if (error) return setError('that code didn’t work. check it, or send a new one.')
+      router.push(next)
+      router.refresh()
+    } catch {
+      setError('that code didn’t work. check it, or send a new one.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -143,7 +154,11 @@ function SignIn({ next }: { next: string }) {
           </button>
         </form>
       )}
-      {error ? <p className="text-muted mt-4 px-2 text-[15px]">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="text-muted mt-4 px-2 text-[15px]">
+          {error}
+        </p>
+      ) : null}
     </div>
   )
 }

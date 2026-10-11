@@ -28,7 +28,7 @@ export function Collection({ ladders, upcoming }: Data) {
                 <p className="flex items-center gap-2 text-[13px] font-medium">
                   <span className="bg-hue size-2 rounded-full" />
                   {p?.best != null ? (
-                    <span className="text-hue inline-flex items-center gap-1">
+                    <span className="inline-flex items-center gap-1">
                       <Check className="size-3.5" />
                       cleared in {p.best} words
                     </span>

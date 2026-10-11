@@ -11,7 +11,10 @@ type Props = {
   note: string | null
 }
 
-const countWords = (text: string) => (text.trim() ? text.trim().split(/\s+/).length : 0)
+// Must match countWords in apps/api/src/ladder/rules.ts, so the count on screen
+// is the one the rules use.
+const countWords = (text: string) =>
+  (text.match(/[\p{L}\p{M}\p{N}]+(?:['’.,-][\p{L}\p{M}\p{N}]+)*/gu) ?? []).length
 
 // A sheet of paper and nothing else. It grows with the text, so the page
 // scrolls rather than the box.
@@ -54,7 +57,9 @@ export function Editor({ value, onChange, pending, limit, error, note }: Props) 
           )}
         </span>
         <span className="flex min-w-0 items-center gap-2">
-          {error || note ? <span className="truncate">{error ?? note}</span> : null}
+          <span className="truncate" aria-live="polite">
+            {error ?? note ?? ''}
+          </span>
           <span
             aria-hidden
             className={`bg-hue size-2 shrink-0 rounded-full transition-opacity ${pending ? 'animate-pulse opacity-100' : 'opacity-30'}`}

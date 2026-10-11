@@ -14,7 +14,7 @@ type Status =
 const field =
   'bg-sheet ring-hairline focus:ring-hue h-14 w-full rounded-full px-6 text-[17px] ring-1 outline-none'
 const primary =
-  'bg-hue text-ground flex h-14 w-full items-center justify-center rounded-full px-8 text-[17px] font-semibold transition-transform active:scale-[0.97] disabled:opacity-60 sm:w-auto'
+  'bg-ink text-ground flex h-14 w-full items-center justify-center rounded-full px-8 text-[17px] font-semibold transition-transform active:scale-[0.97] disabled:opacity-60 sm:w-auto'
 
 type Mine = { text: string; comment: string | null; words: number }
 
@@ -28,8 +28,11 @@ export function PostSolution({ ladder, text }: { ladder: string; text: string })
   const [name, setName] = useState('')
   const [comment, setComment] = useState('')
 
+  // Keyed on the user's id: the session object is new every time the tab
+  // regains focus, and refilling the comment then would undo an edit.
+  const userId = data?.user.id
   useEffect(() => {
-    if (!data) return
+    if (!userId) return
     void api.ladders[':id'].solutions.mine
       .$get({ param: { id: ladder } })
       .then((r) => (r.ok ? r.json() : null))
@@ -37,7 +40,8 @@ export function PostSolution({ ladder, text }: { ladder: string; text: string })
         setMine(m)
         if (m?.comment) setComment(m.comment)
       })
-  }, [data, ladder])
+      .catch(() => {})
+  }, [userId, ladder])
 
   if (isPending) return <div className="mt-8 h-14" />
 
@@ -55,13 +59,13 @@ export function PostSolution({ ladder, text }: { ladder: string; text: string })
         <span>posted, {status.words} words.</span>
         <Link
           href={`/solutions/${status.id}`}
-          className="text-hue font-semibold underline-offset-4 hover:underline"
+          className="font-semibold underline underline-offset-4"
         >
           see yours
         </Link>
         <Link
           href={`/ladders/${ladder}/about`}
-          className="text-hue font-semibold underline-offset-4 hover:underline"
+          className="font-semibold underline underline-offset-4"
         >
           see everyone’s
         </Link>
@@ -73,10 +77,14 @@ export function PostSolution({ ladder, text }: { ladder: string; text: string })
   const post = async (e: React.FormEvent) => {
     e.preventDefault()
     setStatus({ kind: 'posting' })
-    const res = await api.ladders[':id'].solutions.$post({
-      param: { id: ladder },
-      json: { text, comment, ...(needsName ? { name } : {}) },
-    })
+    const res = await api.ladders[':id'].solutions
+      .$post({
+        param: { id: ladder },
+        json: { text, comment, ...(needsName ? { name } : {}) },
+      })
+      .catch(() => null)
+    if (!res)
+      return setStatus({ kind: 'error', message: 'couldn’t post that. try again in a moment.' })
     if (res.status === 201) {
       const { id, words } = await res.json()
       setMine({ text: text.trim(), comment: comment.trim() || null, words })
@@ -129,7 +137,9 @@ export function PostSolution({ ladder, text }: { ladder: string; text: string })
               : 'post your solution'}
       </button>
       {status.kind === 'error' ? (
-        <p className="text-muted px-2 text-[13px]">{status.message}</p>
+        <p role="alert" className="text-muted px-2 text-[13px]">
+          {status.message}
+        </p>
       ) : null}
     </form>
   )

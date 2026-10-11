@@ -17,12 +17,18 @@ export function useAccount() {
 }
 
 // The first draft that needs judging opens the anonymous session. Shared, so
-// two drafts judged at once don't open two.
+// two drafts judged at once don't open two. A dropped connection throws rather
+// than returning an error, and counts as a failure too.
 let opening: Promise<boolean> | null = null
 export function openSession() {
-  opening ??= authClient.signIn.anonymous().then(({ error }) => {
-    opening = null
-    return !error
-  })
+  opening ??= authClient.signIn
+    .anonymous()
+    .then(
+      ({ error }) => !error,
+      () => false,
+    )
+    .finally(() => {
+      opening = null
+    })
   return opening
 }
