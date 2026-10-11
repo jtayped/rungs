@@ -1,14 +1,9 @@
-import type { Metadata } from 'next'
 import { Collection } from '~/components/collection'
 import { Page } from '~/components/page'
 import { listLadders } from '~/lib/ladder'
 
 // A ladder appears at midnight UTC on its date, so this can't be prerendered.
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = {
-  title: 'rungs',
-  openGraph: { title: 'rungs', siteName: 'rungs', type: 'website' },
-}
 
 export default async function Home() {
   const collection = await listLadders()

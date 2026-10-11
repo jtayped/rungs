@@ -60,7 +60,7 @@ to publish one, add the folder and list it in `apps/api/ladders/index.ts`. on bo
 
 once a ladder has posted solutions, the sync won't change its rules, because that would quietly invalidate every post. the title, hints and explanation still update.
 
-the link preview at `/opengraph-image` is the plain rungs card, the same for every page.
+each ladder has its own link preview at `/ladders/<id>/opengraph-image`, its title over rule 1, and its about page uses the same one. every other page gets the plain rungs card at `/opengraph-image`. `/sitemap.xml` lists the home page, `/solutions` and both pages of every ladder that's out.
 
 write meter statements about form, not fact. "this text is a eulogy" scored 0.96 on a normal draft and fell to 0.71 once the person who died turned out to be a router. "this text is written in the form of a eulogy" held through the joke.
 
@@ -77,7 +77,7 @@ pushes to `main` deploy to a self-hosted coolify instance. nothing builds on the
 
 only the web container has a domain. the api is reachable only inside the compose network, and the web app forwards `/api/*` to it.
 
-the workflow reads the `COOLIFY_WEBHOOK_URL` and `COOLIFY_TOKEN` secrets and the `COOLIFY_HEALTH_URLS` variable. the runtime secrets are set in coolify: `OPENROUTER_API_KEY`, `DATABASE_URL`, `BETTER_AUTH_SECRET` and `RESEND_API_KEY`, plus `EMAIL_FROM` if the default sender doesn't suit. the database is a `rungs` database with its own `rungs` role on postgres-general, the shared coolify postgres. the api joins the `coolify` docker network to reach it by container name, so it's never exposed through the stack. compose also sets `SITE_URL`, so link previews use absolute urls.
+the workflow reads the `COOLIFY_WEBHOOK_URL` and `COOLIFY_TOKEN` secrets and the `COOLIFY_HEALTH_URLS` variable. the runtime secrets are set in coolify: `OPENROUTER_API_KEY`, `DATABASE_URL`, `BETTER_AUTH_SECRET` and `RESEND_API_KEY`, plus `EMAIL_FROM` if the default sender doesn't suit. the database is a `rungs` database with its own `rungs` role on postgres-general, the shared coolify postgres. the api joins the `coolify` docker network to reach it by container name, so it's never exposed through the stack. `SITE_URL` is set in compose and also baked into the web image at build time, since prerendered pages and `robots.txt` are built then. that keeps link previews, `robots.txt` and the sitemap on absolute urls.
 
 ## license
 

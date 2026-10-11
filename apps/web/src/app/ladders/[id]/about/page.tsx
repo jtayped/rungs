@@ -11,7 +11,10 @@ export async function generateMetadata({
   params,
 }: PageProps<'/ladders/[id]/about'>): Promise<Metadata> {
   const { title } = await getLadder((await params).id)
-  return { title: `about ${title}` }
+  return {
+    title: `${title}: hints and solutions`,
+    description: `hints for ${title} on rungs, then how it was built and the solutions players have posted.`,
+  }
 }
 
 export default async function About({ params }: PageProps<'/ladders/[id]/about'>) {
