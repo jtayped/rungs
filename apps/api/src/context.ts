@@ -5,16 +5,18 @@ import { limiter } from './limit'
 
 export type AppEnv = { Variables: { user: SessionUser | null } }
 
-// Only mounted on routes that care who is asking. Scoring stays anonymous and
-// never touches the session table.
+// Only mounted on routes that care who is asking. Players who haven't signed
+// in have an anonymous session, so this is set for them too.
 export const withUser = createMiddleware<AppEnv>(async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers })
   c.set('user', session?.user ?? null)
   await next()
 })
 
+// A real account, not an anonymous session.
 export const requireUser = createMiddleware<AppEnv>(async (c, next) => {
-  if (!c.get('user')) return c.json({ error: 'sign in first.' }, 401)
+  const user = c.get('user')
+  if (!user || user.isAnonymous) return c.json({ error: 'sign in first.' }, 401)
   await next()
 })
 

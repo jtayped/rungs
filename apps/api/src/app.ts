@@ -6,7 +6,8 @@ import { trustCloudflare } from './cloudflare'
 import { withUser, type AppEnv } from './context'
 import { env } from './env'
 import { ladderRoutes } from './routes/ladders'
-import { solutionRoutes } from './routes/solutions'
+import { progressRoutes } from './routes/progress'
+import { feedRoutes, solutionRoutes } from './routes/solutions'
 
 const app = new Hono<AppEnv>()
   // Bodies are read whole before validation, so cap them first. The largest
@@ -19,10 +20,13 @@ const app = new Hono<AppEnv>()
   .on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw))
   .get('/me', withUser, (c) => {
     const user = c.get('user')
-    return c.json(user ? { email: user.email, name: user.name || null } : null)
+    if (!user || user.isAnonymous) return c.json(null)
+    return c.json({ email: user.email, name: user.name || null })
   })
+  .route('/me/progress', progressRoutes)
   .route('/ladders', ladderRoutes)
   .route('/ladders', solutionRoutes)
+  .route('/solutions', feedRoutes)
   .onError((err, c) => {
     if (err instanceof HTTPException) return err.getResponse()
     console.error(err)

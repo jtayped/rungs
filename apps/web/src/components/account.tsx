@@ -1,22 +1,60 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { authClient } from '~/lib/auth-client'
+import { useEffect, useState } from 'react'
+import { authClient, useAccount } from '~/lib/auth-client'
+import { setSpoilsAll, spoilsAll } from '~/lib/storage'
 
 const field =
   'bg-sheet ring-hairline focus:ring-hue h-14 w-full rounded-full px-6 text-[17px] ring-1 outline-none'
 const button =
   'bg-ink text-ground h-14 rounded-full px-8 text-[17px] font-semibold transition-transform active:scale-[0.97] disabled:opacity-60'
 
-// Playing never needs an account. This page exists for posting solutions.
+// Playing never needs an account. One lets a player post solutions and keeps
+// their progress across devices.
 export function Account({ next }: { next: string }) {
-  const { data, isPending, isRefetching } = authClient.useSession()
+  const { data, isPending, isRefetching } = useAccount()
   // Coming back to the tab refetches the session, and while signed out that
   // flips isPending on again. Only hide on the first load, or the code step
   // would unmount and drop the email it was waiting on.
   if (isPending && !isRefetching) return null
-  return data ? <SignedIn email={data.user.email} name={data.user.name} /> : <SignIn next={next} />
+  return (
+    <>
+      {data ? <SignedIn email={data.user.email} name={data.user.name} /> : <SignIn next={next} />}
+      <SpoilerSetting />
+    </>
+  )
+}
+
+// Per device, like the yes given for each ladder.
+function SpoilerSetting() {
+  const [on, setOn] = useState(true)
+  // localStorage only exists after mount.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setOn(!spoilsAll()), [])
+
+  return (
+    <label className="bg-sheet ring-hairline mt-12 flex items-center gap-4 rounded-[26px] p-5 ring-1 backdrop-blur-2xl sm:p-6">
+      <span className="flex-1">
+        <span className="block text-[17px] font-semibold tracking-[-0.015em]">
+          spoiler protection
+        </span>
+        <span className="text-muted mt-1 block text-[15px] leading-snug">
+          ask before showing the explanation or solutions of a ladder you haven’t cleared. only on
+          this device.
+        </span>
+      </span>
+      <input
+        type="checkbox"
+        checked={on}
+        onChange={(e) => {
+          setOn(e.target.checked)
+          setSpoilsAll(!e.target.checked)
+        }}
+        className="accent-ink size-6 shrink-0"
+      />
+    </label>
+  )
 }
 
 function SignIn({ next }: { next: string }) {
@@ -57,7 +95,7 @@ function SignIn({ next }: { next: string }) {
     <div className="mt-6">
       <p className="text-muted text-[17px] leading-[1.45]">
         {step === 'email'
-          ? 'you only need an account to post solutions. no password: we email you a code.'
+          ? 'an account lets you post solutions and keeps your progress on every device. no password: we email you a code.'
           : `we sent a code to ${email}. it lasts ten minutes.`}
       </p>
       {step === 'email' ? (

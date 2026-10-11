@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type LadderInfo, type RuleResult, type Score } from './api'
-import { load, save, type Saved } from './storage'
+import { openSession } from './auth-client'
+import { localDraft } from './storage'
+
+type Saved = { text: string; unlocked: number; best: number | null }
+const EMPTY: Saved = { text: '', unlocked: 1, best: null }
 
 // How a rule reads to the player. Every rule before the newest one must have
 // held at some point (that is how the next one arrived), so an earlier rule
@@ -30,14 +34,11 @@ export function useLadder(ladder: LadderInfo) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const latest = useRef<Saved | null>(null)
 
-  const commit = useCallback(
-    (next: Saved) => {
-      latest.current = next
-      setSaved(next)
-      save(ladder.id, next)
-    },
-    [ladder.id],
-  )
+  // The server saves the draft each time it's judged, so this is just state.
+  const commit = useCallback((next: Saved) => {
+    latest.current = next
+    setSaved(next)
+  }, [])
 
   const judge = useCallback(
     async (text: string, unlocked: number) => {
@@ -46,11 +47,24 @@ export function useLadder(ladder: LadderInfo) {
       controller.current = ctl
       setPending(true)
 
-      try {
-        const res = await api.ladders[':id'].score.$post(
+      const post = () =>
+        api.ladders[':id'].score.$post(
           { param: { id: ladder.id }, json: { text, unlocked } },
           { init: { signal: ctl.signal } },
         )
+
+      try {
+        let res = await post()
+        // No session yet: this is the player's first judged draft.
+        if (res.status === 401) {
+          if (!(await openSession())) {
+            return setError('too many new players from your network. give it a minute.')
+          }
+          res = await post()
+          if (res.status === 401) {
+            return setError('this browser is blocking cookies, and the game needs one to judge.')
+          }
+        }
         if (res.status === 429) return setError('too many checks in a row. give it a minute.')
         if (!res.ok) throw new Error(String(res.status))
         const result = await res.json()
@@ -60,9 +74,12 @@ export function useLadder(ladder: LadderInfo) {
         setError(null)
         const current = latest.current!
 
+        // The server's count wins: it never lets the client past what the
+        // judge has revealed.
+        if (result.unlocked !== current.unlocked) commit({ ...current, unlocked: result.unlocked })
+
         if (result.revealed) {
           setFresh(result.revealed)
-          commit({ ...current, unlocked: result.unlocked })
           navigator.vibrate?.(12)
           setFollowUp({ text, unlocked: result.unlocked })
         } else {
@@ -85,17 +102,23 @@ export function useLadder(ladder: LadderInfo) {
   )
 
   useEffect(() => {
-    const initial = load(ladder.id)
-    latest.current = initial
-    // Storage only exists in the browser, so this has to happen after mount.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSaved(initial)
-    void judge(initial.text, initial.unlocked)
+    let live = true
+    void api.me.progress[':id']
+      .$get({ param: { id: ladder.id } })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null)
+      .then((server) => {
+        if (!live) return
+        const initial = server ?? { ...EMPTY, ...localDraft(ladder.id) }
+        commit(initial)
+        void judge(initial.text, initial.unlocked)
+      })
     return () => {
+      live = false
       controller.current?.abort()
       if (timer.current) clearTimeout(timer.current)
     }
-  }, [judge, ladder.id])
+  }, [commit, judge, ladder.id])
 
   useEffect(() => {
     if (!followUp) return

@@ -1,14 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { ImageResponse } from 'next/og'
-import { getToday } from '~/lib/ladder'
 import { hue } from '~/lib/palette'
 
-// Drawn from whatever ladder the API is serving, so a new ladder gets a new
-// card without anyone touching this file. Redrawn at most every ten minutes:
-// rendering a PNG is the most expensive thing the web server does, and drawing
-// one per request would let anyone pin its CPU.
-export const revalidate = 600
 export const alt = 'rungs, a writing game'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
@@ -28,16 +22,7 @@ const FIELDS = [
 ]
 
 export default async function Image() {
-  const [regular, semibold, ladder] = await Promise.all([
-    font(400),
-    font(600),
-    // A crawler should still get a card if the API is down.
-    getToday().catch(() => null),
-  ])
-
-  const title = ladder?.title ?? 'rungs'
-  const total = ladder?.total ?? 8
-  const long = title.length > 16
+  const [regular, semibold] = await Promise.all([font(400), font(600)])
 
   return new ImageResponse(
     <div
@@ -88,14 +73,14 @@ export default async function Image() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
         <div
           style={{
-            fontSize: long ? 92 : 132,
+            fontSize: 132,
             fontWeight: 600,
             letterSpacing: '-0.045em',
             lineHeight: 1,
             maxWidth: 1000,
           }}
         >
-          {title}
+          rungs
         </div>
         <div style={{ fontSize: 36, color: '#98989d', letterSpacing: '-0.01em' }}>
           a writing game
@@ -103,7 +88,7 @@ export default async function Image() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        {Array.from({ length: total }, (_, i) => (
+        {Array.from({ length: 8 }, (_, i) => (
           <div
             key={i}
             style={{

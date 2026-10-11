@@ -1,10 +1,12 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { rateLimit } from '../context'
+import { rateLimit, withUser, type AppEnv } from '../context'
 import { jev } from '../jev'
-import { scoreLadder } from '../ladder/score'
-import { asLadder, getDaily, getLadder, listPast } from '../ladder/store'
+import { getProgress, saveProgress } from '../ladder/progress'
+import { isOut, today } from '../ladder/schedule'
+import { scoreLadder, type ScoreResult } from '../ladder/score'
+import { asLadder, getLadder, listLadders } from '../ladder/store'
 
 const scoreBody = z.object({
   text: z.string().max(4000),
@@ -20,14 +22,26 @@ const info = (row: { id: string; title: string; date: string; rules: readonly un
   total: row.rules.length,
 })
 
-export const ladderRoutes = new Hono()
-  .get('/today', async (c) => {
-    const row = await getDaily()
-    return row ? c.json(info(row), 200) : c.json({ error: 'no ladder yet.' }, 404)
-  })
+export const ladderRoutes = new Hono<AppEnv>()
   .get('/', async (c) => {
-    const rows = await listPast()
-    return c.json(rows.map((r) => ({ ...info(r), solutions: r.solutions })))
+    const day = today()
+    const rows = await listLadders()
+    return c.json(
+      {
+        // Rule 1 is on screen the moment a ladder opens, so it can be shown
+        // before playing.
+        ladders: rows
+          .filter((r) => isOut(r, day))
+          .map((r) => ({ ...info(r), first: r.rules[0]!.text, solutions: r.solutions })),
+        // Only the date and size of a ladder that isn't out yet, so its title
+        // and rules can still change before anyone sees them.
+        upcoming: rows
+          .filter((r) => !isOut(r, day))
+          .reverse()
+          .map((r) => ({ date: r.date, total: r.rules.length })),
+      },
+      200,
+    )
   })
   .get('/:id', async (c) => {
     const row = await getLadder(c.req.param('id'))
@@ -41,11 +55,36 @@ export const ladderRoutes = new Hono()
     '/:id/score',
     rateLimit(150, 60_000),
     rateLimit(10_000, 24 * 60 * 60_000),
+    withUser,
     zValidator('json', scoreBody),
     async (c) => {
+      const at = new Date()
       const row = await getLadder(c.req.param('id'))
       if (!row) return c.json({ error: 'no such ladder.' }, 404)
-      const { text, unlocked } = c.req.valid('json')
-      return c.json(await scoreLadder(asLadder(row), text, unlocked, jev), 200)
+      const { text, unlocked: asked } = c.req.valid('json')
+      const me = c.get('user')
+      // Judging a draft needs a session, anonymous or not, because that is
+      // where the unlock count lives. The client opens one and retries.
+      if (text.trim() && !me) return c.json({ error: 'no session.' }, 401)
+
+      // The client may step back (starting over) but never past what the judge
+      // has revealed, or it could ask for every rule's text up front.
+      const saved = me ? await getProgress(me.id, row.id) : null
+      const unlocked = Math.min(asked, saved?.unlocked ?? 1)
+
+      let result: ScoreResult | undefined
+      try {
+        result = await scoreLadder(asLadder(row), text, unlocked, jev)
+      } finally {
+        // Saved even when the judge fails, so an outage doesn't lose the draft.
+        if (me) {
+          await saveProgress(me.id, row.id, at, {
+            text,
+            unlocked: result?.unlocked ?? unlocked,
+            best: result?.cleared ? result.words : null,
+          })
+        }
+      }
+      return c.json(result, 200)
     },
   )

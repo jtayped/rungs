@@ -8,14 +8,6 @@ import { env } from '~/env'
 // so no cookies are forwarded.
 const server = hc<AppType>(env.API_URL)
 
-export const getToday = cache(async () => {
-  const res = await server.ladders.today.$get()
-  if (res.ok) return res.json()
-  if (res.status === 404) return null
-  // A 502 from the API's error handler, which its route types don't list.
-  throw new Error('today: api unavailable')
-})
-
 export const getLadder = cache(async (id: string) => {
   const res = await server.ladders[':id'].$get({ param: { id } })
   if (res.ok) return res.json()

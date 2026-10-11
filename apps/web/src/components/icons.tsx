@@ -42,14 +42,46 @@ export const GitHub = ({ className }: Props) => (
   </svg>
 )
 
-export const Calendar = ({ className }: Props) => (
+export const Grid = ({ className }: Props) => (
   <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden>
-    <rect x="3.5" y="4.5" width="13" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
-    <path
-      d="M3.5 8.5h13M7 3v3M13 3v3"
+    <rect
+      x="3.5"
+      y="3.5"
+      width="5.5"
+      height="5.5"
+      rx="1.6"
       stroke="currentColor"
       strokeWidth="1.8"
-      strokeLinecap="round"
+    />
+    <rect
+      x="11"
+      y="3.5"
+      width="5.5"
+      height="5.5"
+      rx="1.6"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    />
+    <rect
+      x="3.5"
+      y="11"
+      width="5.5"
+      height="5.5"
+      rx="1.6"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    />
+    <rect x="11" y="11" width="5.5" height="5.5" rx="1.6" stroke="currentColor" strokeWidth="1.8" />
+  </svg>
+)
+
+export const Bubble = ({ className }: Props) => (
+  <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden>
+    <path
+      d="M4 5.5A2 2 0 0 1 6 3.5h8a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-3.5 3v-3H6a2 2 0 0 1-2-2v-6z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
     />
   </svg>
 )

@@ -1,28 +1,27 @@
 import type { Metadata } from 'next'
-import { Game } from '~/components/game'
+import { Collection } from '~/components/collection'
 import { Page } from '~/components/page'
-import { getToday } from '~/lib/ladder'
+import { listLadders } from '~/lib/ladder'
 
-// Today's ladder changes at midnight UTC, so this can't be prerendered.
+// A ladder appears at midnight UTC on its date, so this can't be prerendered.
 export const dynamic = 'force-dynamic'
-
-export async function generateMetadata(): Promise<Metadata> {
-  const ladder = await getToday()
-  const title = ladder?.title ?? 'rungs'
-  // Replaces the layout's openGraph wholesale, so it carries everything.
-  return { title, openGraph: { title, siteName: 'rungs', type: 'website' } }
+export const metadata: Metadata = {
+  title: 'rungs',
+  openGraph: { title: 'rungs', siteName: 'rungs', type: 'website' },
 }
 
-export default async function Today() {
-  const ladder = await getToday()
-  if (!ladder) {
-    return (
-      <Page back={{ href: '/ladders', label: 'past ladders' }} title="nothing yet.">
-        <p className="text-muted mt-6 text-[19px] leading-[1.45]">
-          the first ladder hasn’t gone up. come back tomorrow.
-        </p>
-      </Page>
-    )
-  }
-  return <Game key={ladder.id} ladder={ladder} />
+export default async function Home() {
+  const collection = await listLadders()
+  return (
+    <Page back={null} title="rungs">
+      <p className="text-muted mt-4 text-[19px] leading-[1.45]">
+        write until the rule holds. then the next one arrives, and every rule before it has to keep
+        holding.
+      </p>
+      <Collection {...collection} />
+      {!collection.ladders.length && !collection.upcoming.length ? (
+        <p className="text-muted mt-6 text-[17px]">the first ladder hasn’t gone up yet.</p>
+      ) : null}
+    </Page>
+  )
 }
