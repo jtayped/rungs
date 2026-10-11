@@ -1,4 +1,4 @@
-import { count, desc, eq, lte } from 'drizzle-orm'
+import { asc, count, desc, eq } from 'drizzle-orm'
 import { db } from '../db/client'
 import { ladders, solutions } from '../db/schema'
 import type { Ladder } from './rules'
@@ -29,19 +29,10 @@ export async function getLadder(id: string, day = today()) {
   return row && isOut(row, day) ? row : null
 }
 
-// The latest ladder dated on or before today, so a day without a new ladder
-// keeps the previous one up.
-export async function getDaily(day = today()) {
-  const [row] = await db
-    .select({ id: ladders.id })
-    .from(ladders)
-    .where(lte(ladders.date, day))
-    .orderBy(desc(ladders.date))
-    .limit(1)
-  return row ? getLadder(row.id, day) : null
-}
-
-export async function listPast(day = today()) {
+// Every ladder, scheduled ones included, newest first. Ladders sharing a date
+// keep the order they were first synced in, which is their order in
+// ladders/index.ts.
+export async function listLadders() {
   return db
     .select({
       id: ladders.id,
@@ -52,7 +43,6 @@ export async function listPast(day = today()) {
     })
     .from(ladders)
     .leftJoin(solutions, eq(solutions.ladderId, ladders.id))
-    .where(lte(ladders.date, day))
     .groupBy(ladders.id)
-    .orderBy(desc(ladders.date))
+    .orderBy(desc(ladders.date), asc(ladders.createdAt))
 }

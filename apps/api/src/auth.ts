@@ -1,12 +1,14 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { APIError, createAuthMiddleware } from 'better-auth/api'
-import { emailOTP } from 'better-auth/plugins'
+import { anonymous, emailOTP } from 'better-auth/plugins'
+import { and, eq, gt, lt, notExists } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from './db/client'
 import * as schema from './db/schema'
 import { sendCode } from './email'
 import { env } from './env'
+import { mergeProgress } from './ladder/progress'
 import { limiter } from './limit'
 
 // Shown next to every posted solution. Control and bidi-override characters
@@ -36,7 +38,8 @@ const checkUser = async (data: { name?: unknown; image?: unknown }) => {
 const codesPerEmail = limiter(5, 60 * 60_000)
 const inbox = (email: string) => email.toLowerCase().replace(/\+[^@]*@/, '@')
 
-// Email-only accounts. A code rather than a link, because a link opened from a
+// Email-only accounts, plus an anonymous one for every player who hasn't signed
+// in, so progress is saved before they do. A code rather than a link, because a link opened from a
 // mail app often lands in a different browser than the one playing.
 export const auth = betterAuth({
   baseURL: env.SITE_URL,
@@ -60,7 +63,12 @@ export const auth = betterAuth({
   },
   rateLimit: {
     // Every code is a real email, so one address can't spray many inboxes.
-    customRules: { '/email-otp/send-verification-otp': { window: 60 * 60, max: 10 } },
+    customRules: {
+      '/email-otp/send-verification-otp': { window: 60 * 60, max: 10 },
+      // Every new player opens one, and a phone network can put many players
+      // behind one address, so this only stops a script filling the user table.
+      '/sign-in/anonymous': { window: 60 * 60, max: 100 },
+    },
   },
   databaseHooks: {
     user: { create: { before: checkUser }, update: { before: checkUser } },
@@ -87,7 +95,37 @@ export const auth = betterAuth({
       // Not awaited, so response time doesn't reveal whether the email exists.
       sendVerificationOTP: async ({ email, otp }) => void sendCode(email, otp),
     }),
+    // Signing in from an anonymous session hands its progress to the account,
+    // then the plugin deletes the anonymous user.
+    anonymous({
+      onLinkAccount: ({ anonymousUser, newUser }) =>
+        mergeProgress(anonymousUser.user.id, newUser.user.id),
+    }),
   ],
 })
+
+const DAY = 24 * 60 * 60_000
+
+// Anonymous players with no live session left, which takes 90 days without a
+// visit. They can't post, so this only ever deletes drafts. A user is created
+// a moment before its session, so the newest are left alone.
+export const pruneAnonymous = () =>
+  db.delete(schema.user).where(
+    and(
+      eq(schema.user.isAnonymous, true),
+      lt(schema.user.createdAt, new Date(Date.now() - DAY)),
+      notExists(
+        db
+          .select({ id: schema.session.id })
+          .from(schema.session)
+          .where(
+            and(
+              eq(schema.session.userId, schema.user.id),
+              gt(schema.session.expiresAt, new Date()),
+            ),
+          ),
+      ),
+    ),
+  )
 
 export type SessionUser = typeof auth.$Infer.Session.user

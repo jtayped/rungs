@@ -7,8 +7,8 @@ export async function generateMetadata({ params }: PageProps<'/ladders/[id]'>): 
   return { title, openGraph: { title, siteName: 'rungs', type: 'website' } }
 }
 
-// Any ladder whose day has come, today's included. Drafts are saved per ladder
-// id, so playing here and on / share one draft for today's.
+// Any ladder whose day has come. The draft is loaded from the player's saved
+// progress.
 export default async function Play({ params }: PageProps<'/ladders/[id]'>) {
   const { id, title, date, total } = await getLadder((await params).id)
   return <Game key={id} ladder={{ id, title, date, total }} />

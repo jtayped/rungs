@@ -9,8 +9,12 @@ try {
 const { env } = await import('./env')
 const { migrate } = await import('./db/migrate')
 const { syncLadders } = await import('./ladder/sync')
+const { pruneAnonymous } = await import('./auth')
 await migrate()
 await syncLadders()
+const prune = () => pruneAnonymous().catch((err: unknown) => console.error('prune:', err))
+await prune()
+setInterval(() => void prune(), 24 * 60 * 60_000)
 const { default: app } = await import('./app')
 
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {

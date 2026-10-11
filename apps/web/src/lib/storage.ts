@@ -1,44 +1,42 @@
-// Per-device conveniences only: the draft in progress and a personal best.
-// Every access is guarded because storage can be missing or blocked. Keyed by
-// ladder, so a new ladder starts from a blank page.
+// Per-device settings only. Progress lives on the server. Every access is
+// guarded because storage can be missing or blocked.
 
-export type Saved = { text: string; unlocked: number; best: number | null }
-
-const EMPTY: Saved = { text: '', unlocked: 1, best: null }
-const key = (ladder: string) => `ladder.${ladder}.v1`
-
-export function load(ladder: string): Saved {
+const read = (key: string) => {
   try {
-    const raw = localStorage.getItem(key(ladder))
-    return raw ? { ...EMPTY, ...(JSON.parse(raw) as Partial<Saved>) } : EMPTY
+    return localStorage.getItem(key)
   } catch {
-    return EMPTY
+    return null
   }
 }
 
-export function save(ladder: string, value: Saved) {
+const write = (key: string, value: string | null) => {
   try {
-    localStorage.setItem(key(ladder), JSON.stringify(value))
+    if (value == null) localStorage.removeItem(key)
+    else localStorage.setItem(key, value)
   } catch {
-    // Private mode or storage disabled: the game still works, it just forgets.
+    // Private mode or storage disabled: asked again next time, which is fine.
   }
 }
 
-// Whether the player already said yes to seeing other people's solutions.
+// Some browsers still hold a draft saved on the device under this key. It's
+// only read when the server has nothing for that ladder, so it isn't lost.
+export function localDraft(ladder: string): { text: string; unlocked: number } | null {
+  try {
+    const saved = JSON.parse(read(`ladder.${ladder}.v1`) ?? 'null') as {
+      text?: string
+      unlocked?: number
+    } | null
+    return saved?.text ? { text: saved.text, unlocked: saved.unlocked ?? 1 } : null
+  } catch {
+    return null
+  }
+}
+
+// Whether the player already said yes to spoilers for one ladder, or for all.
 const spoilKey = (ladder: string) => `ladder.${ladder}.spoil`
+const ALL = 'spoilers.all'
 
-export function spoiled(ladder: string) {
-  try {
-    return localStorage.getItem(spoilKey(ladder)) === '1'
-  } catch {
-    return false
-  }
-}
-
-export function spoil(ladder: string) {
-  try {
-    localStorage.setItem(spoilKey(ladder), '1')
-  } catch {
-    // Asked again next time, which is fine.
-  }
-}
+export const spoiled = (ladder: string) => read(ALL) === '1' || read(spoilKey(ladder)) === '1'
+export const spoilsAll = () => read(ALL) === '1'
+export const spoil = (ladder: string) => write(spoilKey(ladder), '1')
+export const setSpoilsAll = (on: boolean) => write(ALL, on ? '1' : null)

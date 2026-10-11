@@ -1,22 +1,26 @@
 'use client'
 
 import Link from 'next/link'
-import { authClient } from '~/lib/auth-client'
-import { Calendar, Info, Person } from './icons'
+import { useAccount } from '~/lib/auth-client'
+import { Bubble, Grid, Info, Person } from './icons'
 
 export const iconButton =
   'text-muted hover:text-ink grid size-8 place-items-center rounded-full transition-colors active:scale-95'
 
-// History, this ladder's about page and the account, in that order. Signed in,
-// the account button shows the player's initial instead of the silhouette.
+// Every ladder, everyone's solutions, this ladder's about page and the
+// account, in that order. Signed in, the account button shows the player's
+// initial instead of the silhouette.
 export function Nav({ ladder }: { ladder?: string }) {
-  const { data } = authClient.useSession()
+  const { data } = useAccount()
   const initial = (data?.user.name || data?.user.email || '').charAt(0).toUpperCase()
 
   return (
     <>
-      <Link href="/ladders" aria-label="past ladders" className={iconButton}>
-        <Calendar className="size-4" />
+      <Link href="/" aria-label="all ladders" className={iconButton}>
+        <Grid className="size-4" />
+      </Link>
+      <Link href="/solutions" aria-label="everyone’s solutions" className={iconButton}>
+        <Bubble className="size-4" />
       </Link>
       {ladder ? (
         <Link

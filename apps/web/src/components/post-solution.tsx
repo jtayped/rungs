@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { api } from '~/lib/api'
-import { authClient } from '~/lib/auth-client'
+import { useAccount } from '~/lib/auth-client'
 
 type Status =
   | { kind: 'idle' }
@@ -11,24 +11,32 @@ type Status =
   | { kind: 'posted'; words: number }
   | { kind: 'error'; message: string }
 
+const field =
+  'bg-sheet ring-hairline focus:ring-hue h-14 w-full rounded-full px-6 text-[17px] ring-1 outline-none'
 const primary =
   'bg-hue text-ground flex h-14 w-full items-center justify-center rounded-full px-8 text-[17px] font-semibold transition-transform active:scale-[0.97] disabled:opacity-60 sm:w-auto'
 
+type Mine = { text: string; comment: string | null; words: number }
+
 // Posting is the one thing that needs an account. Signed out, the button goes
-// to sign-in and comes back here; the draft is in localStorage, so the finale
-// plays again on return.
+// to sign-in and comes back here. Signing in carries the draft over to the
+// account, so the finale plays again on return.
 export function PostSolution({ ladder, text }: { ladder: string; text: string }) {
-  const { data, isPending } = authClient.useSession()
+  const { data, isPending } = useAccount()
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
-  const [mine, setMine] = useState<{ text: string; words: number } | null>(null)
+  const [mine, setMine] = useState<Mine | null>(null)
   const [name, setName] = useState('')
+  const [comment, setComment] = useState('')
 
   useEffect(() => {
     if (!data) return
     void api.ladders[':id'].solutions.mine
       .$get({ param: { id: ladder } })
       .then((r) => (r.ok ? r.json() : null))
-      .then(setMine)
+      .then((m) => {
+        setMine(m)
+        if (m?.comment) setComment(m.comment)
+      })
   }, [data, ladder])
 
   if (isPending) return <div className="mt-8 h-14" />
@@ -61,11 +69,11 @@ export function PostSolution({ ladder, text }: { ladder: string; text: string })
     setStatus({ kind: 'posting' })
     const res = await api.ladders[':id'].solutions.$post({
       param: { id: ladder },
-      json: { text, ...(needsName ? { name } : {}) },
+      json: { text, comment, ...(needsName ? { name } : {}) },
     })
     if (res.status === 201) {
       const { words } = await res.json()
-      setMine({ text: text.trim(), words })
+      setMine({ text: text.trim(), comment: comment.trim() || null, words })
       return setStatus({ kind: 'posted', words })
     }
     // Scores near a threshold can wobble between calls. Rare, and the fix is
@@ -73,13 +81,15 @@ export function PostSolution({ ladder, text }: { ladder: string; text: string })
     const message =
       res.status === 422
         ? 'the judge read it again and a rule didn’t hold. nudge it and try once more.'
-        : 'couldn’t post that. try again in a moment.'
+        : res.status === 400
+          ? 'comments are one line, with no links.'
+          : 'couldn’t post that. try again in a moment.'
     setStatus({ kind: 'error', message })
   }
 
-  const same = mine?.text === text.trim()
+  const same = mine?.text === text.trim() && (mine.comment ?? '') === comment.trim()
   return (
-    <form onSubmit={post} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+    <form onSubmit={post} className="mt-8 flex flex-col gap-3">
       {needsName ? (
         <input
           required
@@ -88,10 +98,22 @@ export function PostSolution({ ladder, text }: { ladder: string; text: string })
           onChange={(e) => setName(e.target.value)}
           placeholder="a name to post under"
           aria-label="a name to post under"
-          className="bg-sheet ring-hairline focus:ring-hue h-14 rounded-full px-6 text-[17px] ring-1 outline-none sm:flex-1"
+          className={field}
         />
       ) : null}
-      <button type="submit" disabled={status.kind === 'posting' || same} className={primary}>
+      <input
+        maxLength={280}
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="add a comment, if you like"
+        aria-label="a comment on your solution"
+        className={field}
+      />
+      <button
+        type="submit"
+        disabled={status.kind === 'posting' || same}
+        className={`${primary} sm:self-start`}
+      >
         {status.kind === 'posting'
           ? 'judging…'
           : same
