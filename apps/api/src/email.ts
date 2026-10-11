@@ -53,7 +53,7 @@ export async function sendCode(email: string, code: string) {
     return
   }
   const { error } = await resend.emails.send({
-    from: env.EMAIL_FROM,
+    from: env.EMAIL_FROM!,
     to: email,
     ...codeEmail(code),
   })
