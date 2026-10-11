@@ -2,19 +2,21 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { api, type FeedItem } from '~/lib/api'
+import { api, type FeedPage } from '~/lib/api'
 import { useSpoilers } from '~/lib/progress'
-import { Post } from './solutions'
+import { Byline, Post } from './post'
 import { SpoilerDialog } from './spoiler'
 
-// The newest posts across every ladder, loaded a page at a time as the end
-// scrolls into view. Posts on ladders the player hasn't cleared stay blurred
-// until they say yes for that ladder.
-export function Feed() {
+// The newest posts across every ladder. The first page comes from the server,
+// and the rest load a page at a time as the end scrolls into view. Posts on
+// ladders the player hasn't cleared stay blurred until they say yes for that
+// ladder.
+export function Feed({ first }: { first: FeedPage | null }) {
   const { shown, show } = useSpoilers()
-  const [items, setItems] = useState<FeedItem[]>([])
-  // undefined before the first page, null once there are no more.
-  const [next, setNext] = useState<string | null | undefined>(undefined)
+  const [items, setItems] = useState(first?.items ?? [])
+  // undefined before the first page, null once there are no more. Without a
+  // first page from the server, the browser loads it.
+  const [next, setNext] = useState<string | null | undefined>(first ? first.next : undefined)
   const [failed, setFailed] = useState(false)
   const [asking, setAsking] = useState<{ ladder: string; title: string } | null>(null)
   const end = useRef<HTMLDivElement>(null)
@@ -51,16 +53,7 @@ export function Feed() {
     <>
       <ol className="mt-10 flex flex-col gap-3">
         {items.map((s) => {
-          const open = shown(s.ladder)
-          const body = (
-            <>
-              <Post text={s.text} comment={s.comment} />
-              <p className="text-muted mt-3 text-[13px]">
-                <span className="text-ink font-medium">{s.name}</span>
-                <span className="tabular-nums"> · {s.words} words</span>
-              </p>
-            </>
-          )
+          const body = <Post text={s.text} comment={s.comment} />
           return (
             <li
               key={s.id}
@@ -72,7 +65,7 @@ export function Feed() {
               >
                 {s.title}
               </Link>
-              {open ? (
+              {shown(s.ladder) ? (
                 body
               ) : (
                 <button
@@ -89,6 +82,7 @@ export function Feed() {
                   </span>
                 </button>
               )}
+              <Byline id={s.id} name={s.name} words={s.words} at={s.at} />
             </li>
           )
         })}

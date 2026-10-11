@@ -10,6 +10,5 @@ export type LadderInfo = Pick<LadderPage, 'id' | 'title' | 'date' | 'total'>
 export type Collection = InferResponseType<Ladders['$get'], 200>
 export type Score = InferResponseType<Ladders[':id']['score']['$post'], 200>
 export type RuleResult = Score['rules'][number]
-export type Solution = InferResponseType<Ladders[':id']['solutions']['$get'], 200>[number]
-export type FeedItem = InferResponseType<typeof api.solutions.$get, 200>['items'][number]
+export type FeedPage = InferResponseType<typeof api.solutions.$get, 200>
 export type Progress = InferResponseType<typeof api.me.progress.$get, 200>[number]

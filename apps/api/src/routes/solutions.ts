@@ -78,14 +78,16 @@ export const solutionRoutes = new Hono<AppEnv>()
         return c.json({ error: 'not every rule holds.', failing: verdict.failing }, 422)
       }
 
-      await db
+      // Replacing a post keeps its id, so a link to it keeps working.
+      const [saved] = await db
         .insert(solutions)
         .values({ ladderId: row.id, userId: me.id, text, comment: note, words: verdict.words })
         .onConflictDoUpdate({
           target: [solutions.ladderId, solutions.userId],
           set: { text, comment: note, words: verdict.words, updatedAt: new Date() },
         })
-      return c.json({ words: verdict.words }, 201)
+        .returning({ id: solutions.id })
+      return c.json({ id: saved!.id, words: verdict.words }, 201)
     },
   )
   .delete('/:id/solutions/mine', requireUser, async (c) => {
@@ -99,8 +101,7 @@ export const solutionRoutes = new Hono<AppEnv>()
 
 const PAGE = 20
 
-// The cursor is the last post's timestamp as Postgres prints it, which keeps
-// the microseconds a JS Date would drop, then its id.
+// The cursor is the last post's time, then its id.
 const feedQuery = z.object({
   before: z
     .string()
@@ -108,12 +109,11 @@ const feedQuery = z.object({
     .optional(),
 })
 
-// Newest posts across every ladder that is out, a page at a time. A replaced
-// post counts as new.
-export const feedRoutes = new Hono().get('/', zValidator('query', feedQuery), async (c) => {
-  const { before } = c.req.valid('query')
-  const [at, id] = before?.split('_') ?? []
-  const rows = await db
+// A post as the feed and its own page show it, on ladders that are out. The
+// time is as Postgres prints it, which keeps the microseconds a JS Date would
+// drop, so the feed can use it as a cursor.
+const posts = () =>
+  db
     .select({
       id: solutions.id,
       ladder: ladders.id,
@@ -127,18 +127,32 @@ export const feedRoutes = new Hono().get('/', zValidator('query', feedQuery), as
     .from(solutions)
     .innerJoin(user, eq(user.id, solutions.userId))
     .innerJoin(ladders, eq(ladders.id, solutions.ladderId))
-    .where(
-      and(
-        lte(ladders.date, today()),
-        at
-          ? sql`(${solutions.updatedAt}, ${solutions.id}) < (${at}::timestamp, ${Number(id)})`
-          : undefined,
-      ),
-    )
-    .orderBy(desc(solutions.updatedAt), desc(solutions.id))
-    .limit(PAGE + 1)
 
-  const items = rows.slice(0, PAGE)
-  const last = items.at(-1)
-  return c.json({ items, next: rows.length > PAGE && last ? `${last.at}_${last.id}` : null }, 200)
-})
+export const feedRoutes = new Hono()
+  // Newest first, a page at a time. A replaced post counts as new.
+  .get('/', zValidator('query', feedQuery), async (c) => {
+    const { before } = c.req.valid('query')
+    const [at, id] = before?.split('_') ?? []
+    const rows = await posts()
+      .where(
+        and(
+          lte(ladders.date, today()),
+          at
+            ? sql`(${solutions.updatedAt}, ${solutions.id}) < (${at}::timestamp, ${Number(id)})`
+            : undefined,
+        ),
+      )
+      .orderBy(desc(solutions.updatedAt), desc(solutions.id))
+      .limit(PAGE + 1)
+
+    const items = rows.slice(0, PAGE)
+    const last = items.at(-1)
+    return c.json({ items, next: rows.length > PAGE && last ? `${last.at}_${last.id}` : null }, 200)
+  })
+  .get('/:id', async (c) => {
+    const id = c.req.param('id')
+    // Ids are int4, so nine digits can't overflow the cast.
+    if (!/^\d{1,9}$/.test(id)) return c.json({ error: 'no such solution.' }, 404)
+    const [row] = await posts().where(and(eq(solutions.id, Number(id)), lte(ladders.date, today())))
+    return row ? c.json(row, 200) : c.json({ error: 'no such solution.' }, 404)
+  })
