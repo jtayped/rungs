@@ -8,7 +8,7 @@ import { Aura } from './aura'
 import { Editor } from './editor'
 import { Finale } from './finale'
 import { GitHub, Restart } from './icons'
-import { iconButton, Nav } from './nav'
+import { iconButton, Nav, Tip } from './nav'
 import { Progress } from './progress'
 import { RuleHero } from './rule-hero'
 import { RuleList } from './rule-list'
@@ -34,6 +34,7 @@ export function Game({ ladder: info }: { ladder: LadderInfo }) {
       className="hue-shift relative isolate min-h-svh"
       style={{ '--hue': showFinale ? HUES[7] : hue(at) } as React.CSSProperties}
     >
+      <h1 className="sr-only">{info.title}</h1>
       <Aura colors={ladder.ready ? colors : SPECTRUM} />
 
       {ladder.ready ? (
@@ -43,7 +44,6 @@ export function Game({ ladder: info }: { ladder: LadderInfo }) {
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="mx-auto min-h-svh max-w-6xl px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+2.5rem)] sm:px-8 sm:pt-8"
         >
-          <h1 className="sr-only">{info.title}</h1>
           <div className="flex h-8 items-center justify-between gap-4">
             <Progress rules={ladder.rules} total={ladder.total} />
             <div className="flex items-center gap-1 sm:gap-2">
@@ -56,14 +56,16 @@ export function Game({ ladder: info }: { ladder: LadderInfo }) {
                 className={`${iconButton} max-sm:hidden`}
               >
                 <GitHub className="size-4" />
+                <Tip>source on github</Tip>
               </a>
               <button
                 type="button"
                 onClick={ladder.restart}
                 aria-label="start over"
-                className="bg-hairline text-muted hover:text-ink grid size-8 place-items-center rounded-full transition-colors active:scale-95"
+                className="group bg-hairline text-muted hover:text-ink relative grid size-8 place-items-center rounded-full transition-colors active:scale-95"
               >
                 <Restart className="size-4" />
+                <Tip>start over</Tip>
               </button>
             </div>
           </div>

@@ -8,7 +8,7 @@ import { useAccount } from '~/lib/auth-client'
 type Status =
   | { kind: 'idle' }
   | { kind: 'posting' }
-  | { kind: 'posted'; words: number }
+  | { kind: 'posted'; id: number; words: number }
   | { kind: 'error'; message: string }
 
 const field =
@@ -54,6 +54,12 @@ export function PostSolution({ ladder, text }: { ladder: string; text: string })
       <p className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-1 px-2 text-[15px]">
         <span>posted, {status.words} words.</span>
         <Link
+          href={`/solutions/${status.id}`}
+          className="text-hue font-semibold underline-offset-4 hover:underline"
+        >
+          see yours
+        </Link>
+        <Link
           href={`/ladders/${ladder}/about`}
           className="text-hue font-semibold underline-offset-4 hover:underline"
         >
@@ -72,9 +78,9 @@ export function PostSolution({ ladder, text }: { ladder: string; text: string })
       json: { text, comment, ...(needsName ? { name } : {}) },
     })
     if (res.status === 201) {
-      const { words } = await res.json()
+      const { id, words } = await res.json()
       setMine({ text: text.trim(), comment: comment.trim() || null, words })
-      return setStatus({ kind: 'posted', words })
+      return setStatus({ kind: 'posted', id, words })
     }
     // Scores near a threshold can wobble between calls. Rare, and the fix is
     // the same as any broken rule: keep editing.

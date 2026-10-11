@@ -2,7 +2,7 @@
 
 a writing game. you get one rule and write until it holds. then you get the next rule, and every earlier rule has to keep holding while you satisfy the new one. the rules don't warn you about each other, so the fun is in the rewrite that follows each new rule.
 
-a set of rules is called a ladder. the home page lists every ladder that's out, plus blurred cards for the ones that come out later. each ladder has an about page with hints you reveal one at a time, then an explanation and the solutions other players have posted. `/solutions` shows the newest posts across every ladder. the explanation and the solutions give a ladder away, so for a ladder you haven't cleared they stay blurred until you say yes, and you can turn that check off for every ladder.
+a set of rules is called a ladder. the home page lists every ladder that's out, plus blurred cards for the ones that come out later. each ladder has an about page with hints you reveal one at a time, then an explanation and the solutions other players have posted. `/solutions` shows the newest posts across every ladder, and each post has its own page at `/solutions/<id>` to link to. the explanation and the solutions give a ladder away, so for a ladder you haven't cleared they stay blurred until you say yes, and you can turn that check off for every ladder.
 
 playing never needs an account. posting a solution, with an optional one-line comment, does, and signing in only takes an email and a code.
 
@@ -60,7 +60,9 @@ to publish one, add the folder and list it in `apps/api/ladders/index.ts`. on bo
 
 once a ladder has posted solutions, the sync won't change its rules, because that would quietly invalidate every post. the title, hints and explanation still update.
 
-each ladder has its own link preview at `/ladders/<id>/opengraph-image`, its title over rule 1, and its about page uses the same one. every other page gets the plain rungs card at `/opengraph-image`. `/sitemap.xml` lists the home page, `/solutions` and both pages of every ladder that's out.
+each ladder has its own link preview at `/ladders/<id>/opengraph-image`, its title over rule 1, and its about page uses the same one. a post's preview shows the ladder, who posted it and its length, never the text. every other page gets the plain rungs card at `/opengraph-image`. `/sitemap.xml` lists the home page, `/solutions`, both pages of every ladder that's out and every post's page.
+
+the hints, the explanation, the solutions and the first page of `/solutions` render on the server, so they're in the html a crawler fetches. spoilers stay blurred in the browser until the player says yes, but the text is still in the page.
 
 write meter statements about form, not fact. "this text is a eulogy" scored 0.96 on a normal draft and fell to 0.71 once the person who died turned out to be a router. "this text is written in the form of a eulogy" held through the joke.
 

@@ -68,10 +68,12 @@ export function SpoilerDialog({
 export function Spoiler({
   ladder,
   title,
+  label = 'show the explanation and solutions',
   children,
 }: {
   ladder: string
   title: string
+  label?: string
   children: React.ReactNode
 }) {
   const { shown, show } = useSpoilers()
@@ -79,7 +81,7 @@ export function Spoiler({
   if (shown(ladder)) return children
 
   return (
-    <div className="relative mt-10">
+    <div className="relative">
       <div aria-hidden inert className="max-h-96 overflow-hidden blur-md select-none">
         {children}
       </div>
@@ -89,7 +91,7 @@ export function Spoiler({
         className="absolute inset-0 grid place-items-center"
       >
         <span className="bg-ink text-ground h-12 rounded-full px-6 text-[15px] leading-12 font-semibold">
-          show the explanation and solutions
+          {label}
         </span>
       </button>
       {asking ? (
