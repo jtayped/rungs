@@ -22,7 +22,7 @@ playing never needs an account. posting a solution, with an optional one-line co
 
 some rules are judgement calls, like "this is written in the form of a eulogy" or "the writer is angry". those are meter rules. each one is a statement plus a threshold, and it holds when jev's probability is above or below the line. every live meter rule goes into a single call, so eight rules still cost one round trip. rules that are plain counting, like a word limit or a banned word, are checked locally and never reach jev. a word is a run of letters and numbers, so a blank that isn't a space can't glue a post into one word, and invisible characters are stripped before the banned-word check.
 
-each call costs about $0.0000045 per statement. the api stops judging for the rest of the day (utc) after 150,000 statements across every visitor, which keeps a day near a seventh of the key's $5 weekly limit on openrouter. raise the `dailyBudget` in `apps/api/src/jev.ts` when the limit goes up. a call that takes longer than 10 seconds is dropped and retried once.
+every call is paid. once a day's budget of statements across every visitor is spent, the api stops judging until midnight utc, so a flood of requests can't run through the key's whole spending limit. size the `dailyBudget` in `apps/api/src/jev.ts` to a day's share of that limit. a call that takes longer than 10 seconds is dropped and retried once.
 
 the player never sees a probability. the web app gets a 0 to 1 closeness per rule and draws it as a bar that fills as the draft gets nearer to passing. scoring runs after a short pause in typing, not on every keystroke.
 
@@ -44,7 +44,7 @@ pnpm dev
 
 the compose file starts postgres on :5434. `pnpm dev` then starts the api on :3001 and the web app on :3000. the browser only ever talks to the web app, which forwards `/api/*` to the api.
 
-the api needs an openrouter key. copy `apps/api/.env.example` to `apps/api/.env.local` and fill in `OPENROUTER_API_KEY`. if `secret-run` is installed, the `dev` and `probe` scripts take the key from its `personal rungs.openrouter` scope instead, so it never touches disk.
+the api needs an openrouter key. copy `apps/api/.env.example` to `apps/api/.env.local` and fill in `OPENROUTER_API_KEY`, or set it in the environment, which wins over the file.
 
 in dev, the database url and auth secret default to the compose postgres and a throwaway value. without a `RESEND_API_KEY`, sign-in codes are printed to the api's terminal.
 
@@ -81,7 +81,13 @@ pushes to `main` deploy to a self-hosted coolify instance. nothing builds on the
 
 only the web container has a domain. the api is reachable only inside the compose network, and the web app forwards `/api/*` to it.
 
-the workflow reads the `COOLIFY_WEBHOOK_URL` and `COOLIFY_TOKEN` secrets and the `COOLIFY_HEALTH_URLS` variable. the runtime secrets are set in coolify: `OPENROUTER_API_KEY`, `DATABASE_URL`, `BETTER_AUTH_SECRET` and `RESEND_API_KEY`, plus `EMAIL_FROM` if the default sender doesn't suit. the database is a `rungs` database with its own `rungs` role on postgres-general, the shared coolify postgres. the api joins the `coolify` docker network to reach it by container name, so it's never exposed through the stack. `SITE_URL` is set in compose and also baked into the web image at build time, since prerendered pages and `robots.txt` are built then. that keeps link previews, `robots.txt` and the sitemap on absolute urls. the api won't start in production without it, since sign-in only trusts that origin.
+the workflow reads the `COOLIFY_WEBHOOK_URL` and `COOLIFY_TOKEN` secrets and the `COOLIFY_HEALTH_URLS` variable. the runtime secrets are set in coolify: `OPENROUTER_API_KEY`, `DATABASE_URL`, `BETTER_AUTH_SECRET` and `RESEND_API_KEY`, plus `EMAIL_FROM` if the default sender doesn't suit. the database is a postgres on the `coolify` docker network, which the api joins, so the database is never exposed through the stack. `SITE_URL` is set in compose for the api, which won't start in production without it, since sign-in only trusts that origin. the web image bakes it in at build time from the `SITE_URL` repo variable, since prerendered pages and `robots.txt` are built then, and the build stops without it. that keeps link previews, `robots.txt` and the sitemap on absolute urls.
+
+### analytics
+
+page views and a few events go to a self-hosted [umami](https://umami.is) through `/_a`, which the web app forwards to the umami host. umami sets no cookies. the events are rules unlocked, ladders cleared, solutions posted, hints and spoilers shown, shares, sign-ins, start-overs and judge errors, each with the ladder id and a number or two. draft text, names and emails are never sent.
+
+it's on only when the web build has `NEXT_PUBLIC_UMAMI_HOST` and `NEXT_PUBLIC_UMAMI_WEBSITE_ID`. without them there's no script and nothing is sent. the release workflow passes both from the `UMAMI_HOST` and `UMAMI_WEBSITE_ID` repo variables. only the domain in `SITE_URL` reports, so a local build sends nothing.
 
 ### taking a post down
 

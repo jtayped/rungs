@@ -18,8 +18,8 @@ const write = (key: string, value: string | null) => {
   }
 }
 
-// Some browsers still hold a draft saved on the device under this key. It's
-// only read when the server has nothing for that ladder, so it isn't lost.
+// A browser may hold a draft saved on the device under this key. It's only
+// read when the server has nothing for that ladder, so it isn't lost.
 export function localDraft(ladder: string): { text: string; unlocked: number } | null {
   try {
     const saved = JSON.parse(read(`ladder.${ladder}.v1`) ?? 'null') as {

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useSpoilers } from '~/lib/progress'
+import { track } from '~/lib/track'
 
 // Asks before giving a ladder away, with the option to stop asking for every
 // ladder. A sheet from the bottom on phones, a card in the middle elsewhere.
@@ -69,11 +70,13 @@ export function Spoiler({
   ladder,
   title,
   label = 'show the explanation and solutions',
+  where = 'about',
   children,
 }: {
   ladder: string
   title: string
   label?: string
+  where?: 'about' | 'solution'
   children: React.ReactNode
 }) {
   const { shown, show } = useSpoilers()
@@ -97,7 +100,10 @@ export function Spoiler({
       {asking ? (
         <SpoilerDialog
           title={title}
-          onShow={(all) => show(ladder, all)}
+          onShow={(all) => {
+            show(ladder, all)
+            track('spoiler-shown', { ladder, all, where })
+          }}
           onClose={() => setAsking(false)}
         />
       ) : null}

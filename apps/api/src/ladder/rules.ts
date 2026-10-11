@@ -17,13 +17,11 @@ export type MaxWordsRule = RuleBase & { kind: 'maxWords'; value: number }
 
 export type Rule = MeterRule | ForbidRule | MaxWordsRule
 
-// A ladder is just an ordered list of rules with a name. Nothing outside this
-// folder knows what any particular ladder is about.
 export type Ladder = { id: string; title: string; rules: readonly Rule[] }
 
 // A word is a run of letters, marks and numbers, joined by an apostrophe,
 // hyphen, period or comma at most ("don't", "well-known", "50,000"). Splitting
-// on whitespace instead let a blank that isn't whitespace, like U+2800, glue a
+// on whitespace would let a blank that isn't whitespace, like U+2800, glue a
 // whole post into one word. The editor counts the same way.
 export function countWords(text: string) {
   return (text.match(/[\p{L}\p{M}\p{N}]+(?:['’.,-][\p{L}\p{M}\p{N}]+)*/gu) ?? []).length

@@ -18,8 +18,8 @@ function required(name) {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-// POST, not GET. Coolify's auth middleware answers every method with 401
-// before routing decides, so a GET's 405 never surfaces when probing by hand.
+// The webhook takes a POST. Coolify answers any method with 401 before it
+// routes, so a GET fails as if the token were wrong.
 async function queueDeployment(webhook, token) {
   const response = await fetch(webhook, {
     method: 'POST',

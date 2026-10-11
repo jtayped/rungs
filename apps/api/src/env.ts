@@ -1,8 +1,8 @@
 import { createEnv } from '@t3-oss/env-core'
 import { z } from 'zod'
 
-// secret-run, when `pnpm dev` finds it, exports the key under its own name.
-// The OpenRouter provider looks for OPENROUTER_API_KEY.
+// The key is also accepted under the project prefix. The OpenRouter provider
+// itself only reads OPENROUTER_API_KEY.
 process.env.OPENROUTER_API_KEY ||= process.env.RUNGS_OPENROUTER_API_KEY
 
 // Local dev talks to compose.dev.yaml's Postgres with a throwaway auth secret,

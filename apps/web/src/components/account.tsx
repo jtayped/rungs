@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { authClient, useAccount } from '~/lib/auth-client'
 import { setSpoilsAll, spoilsAll } from '~/lib/storage'
+import { track } from '~/lib/track'
 
 const field =
   'bg-sheet ring-hairline focus:ring-hue h-14 w-full rounded-full px-6 text-[17px] ring-1 outline-none'
@@ -80,6 +81,7 @@ function SignIn({ next }: { next: string }) {
       }
       setError(null)
       setStep('code')
+      track('sign-in-code-sent')
     } catch {
       setError('couldn’t send a code to that address.')
     } finally {
@@ -93,6 +95,7 @@ function SignIn({ next }: { next: string }) {
     try {
       const { error } = await authClient.signIn.emailOtp({ email, otp: code.trim() })
       if (error) return setError('that code didn’t work. check it, or send a new one.')
+      track('signed-in')
       router.push(next)
       router.refresh()
     } catch {

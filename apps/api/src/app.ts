@@ -30,7 +30,7 @@ const app = new Hono<AppEnv>()
   .onError((err, c) => {
     if (err instanceof HTTPException) return err.getResponse()
     console.error(err)
-    return c.json({ error: 'the judge is unavailable right now.' }, 502)
+    return c.json({ error: 'something went wrong. try again in a moment.' }, 502)
   })
 
 export type AppType = typeof app

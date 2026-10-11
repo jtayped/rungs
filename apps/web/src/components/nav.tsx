@@ -21,9 +21,6 @@ export function Tip({ children }: { children: string }) {
   )
 }
 
-// Every ladder, everyone's solutions, this ladder's about page and the
-// account, in that order. Signed in, the account button shows the player's
-// initial instead of the silhouette.
 export function Nav({ ladder }: { ladder?: string }) {
   const { data } = useAccount()
   const initial = (data?.user.name || data?.user.email || '').charAt(0).toUpperCase()

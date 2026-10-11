@@ -43,8 +43,9 @@ const codesInAll = limiter(50, 60 * 60_000)
 const inbox = (email: string) => email.toLowerCase().replace(/\+[^@]*@/, '@')
 
 // Email-only accounts, plus an anonymous one for every player who hasn't signed
-// in, so progress is saved before they do. A code rather than a link, because a link opened from a
-// mail app often lands in a different browser than the one playing.
+// in, so progress is saved before they do. A code rather than a link, because
+// a link opened from a mail app often lands in a different browser than the
+// one playing.
 export const auth = betterAuth({
   baseURL: env.SITE_URL,
   basePath: '/api/auth',
@@ -60,9 +61,9 @@ export const auth = betterAuth({
   ],
   session: { expiresIn: 60 * 60 * 24 * 90, updateAge: 60 * 60 * 24 },
   advanced: {
-    // Cloudflare is in front and puts the visitor's address here. By the time a
-    // request arrives, x-forwarded-for holds Cloudflare's and Traefik's hops,
-    // which better-auth refuses, leaving every visitor in one shared bucket.
+    // Cloudflare puts the visitor's address here. By the time a request
+    // arrives, x-forwarded-for holds the proxies' hops, which better-auth
+    // refuses, leaving every visitor in one shared bucket.
     ipAddress: { ipAddressHeaders: ['cf-connecting-ip'] },
   },
   rateLimit: {

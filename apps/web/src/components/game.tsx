@@ -50,6 +50,7 @@ export function Game({ ladder: info }: { ladder: LadderInfo }) {
               <Nav ladder={info.id} />
               <a
                 href={REPO_URL}
+                data-umami-event="github"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="source on github"

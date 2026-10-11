@@ -16,8 +16,7 @@ type Props = {
 const countWords = (text: string) =>
   (text.match(/[\p{L}\p{M}\p{N}]+(?:['’.,-][\p{L}\p{M}\p{N}]+)*/gu) ?? []).length
 
-// A sheet of paper and nothing else. It grows with the text, so the page
-// scrolls rather than the box.
+// It grows with the text, so the page scrolls rather than the box.
 export function Editor({ value, onChange, pending, limit, error, note }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null)
   const words = countWords(value)

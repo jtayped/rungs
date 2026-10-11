@@ -81,7 +81,7 @@ export const progress = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.ladderId] })],
 )
 
-// Below: the tables better-auth expects, written out by hand to match
+// The tables better-auth expects, written out by hand to match
 // @better-auth/core's getAuthTables for v1.7.
 
 export const user = pgTable('user', {

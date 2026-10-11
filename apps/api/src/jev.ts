@@ -10,10 +10,10 @@ import { dailyBudget } from './limit'
 // trip (~100ms, fractions of a cent).
 const model = openrouter.evaluationModel('~typesafe/jev-latest')
 
-// One cap on every visitor together, since per-address limits don't stop many
-// addresses. The OpenRouter key allows $5 a week and a statement costs about
-// $0.0000045, so this keeps a day near a seventh of that. Past it, judging
-// stops until midnight UTC instead of for the rest of the week.
+// One cap on every visitor together, since per-address limits don't stop a
+// caller with many addresses. Size it to a day's share of the key's spending
+// limit, so a flood stops judging until midnight UTC rather than until the
+// limit resets.
 const spend = dailyBudget(150_000)
 
 export const jev: Judge = async (text, statements) => {
@@ -37,7 +37,5 @@ export const jev: Judge = async (text, statements) => {
       ]),
     ),
   })
-  return Object.fromEntries(
-    Object.entries(answers).map(([id, a]) => [id, 'probability' in a ? a.probability : 0]),
-  )
+  return Object.fromEntries(Object.entries(answers).map(([id, a]) => [id, a.probability]))
 }
