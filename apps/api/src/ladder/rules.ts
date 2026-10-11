@@ -21,18 +21,23 @@ export type Rule = MeterRule | ForbidRule | MaxWordsRule
 // folder knows what any particular ladder is about.
 export type Ladder = { id: string; title: string; rules: readonly Rule[] }
 
+// A word is a run of letters, marks and numbers, joined by an apostrophe,
+// hyphen, period or comma at most ("don't", "well-known", "50,000"). Splitting
+// on whitespace instead let a blank that isn't whitespace, like U+2800, glue a
+// whole post into one word. The editor counts the same way.
 export function countWords(text: string) {
-  const trimmed = text.trim()
-  return trimmed ? trimmed.split(/\s+/).length : 0
+  return (text.match(/[\p{L}\p{M}\p{N}]+(?:['’.,-][\p{L}\p{M}\p{N}]+)*/gu) ?? []).length
 }
 
 // Whole word, any suffix: 'love' matches 'loved' and 'lovely', not 'glove'.
+// Invisible characters (zero-width spaces, soft hyphens) are dropped first, so
+// one can't hide a banned word by sitting inside it.
 export function bannedHits(text: string, stems: readonly string[]) {
+  const visible = text.replace(/\p{Cf}/gu, '')
   const hits = new Set<string>()
   for (const stem of stems) {
-    for (const found of text.match(new RegExp(`\\b${stem}\\w*\\b`, 'gi')) ?? []) {
-      hits.add(found.toLowerCase())
-    }
+    const word = new RegExp(`(?<![\\p{L}\\p{N}])${stem}[\\p{L}\\p{N}]*`, 'giu')
+    for (const found of visible.match(word) ?? []) hits.add(found.toLowerCase())
   }
   return [...hits]
 }

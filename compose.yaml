@@ -1,5 +1,6 @@
-# The production stack, as Coolify runs it. GitHub Actions builds both images
-# and pushes them to GHCR; nothing is built on the host. Only web gets a
+# The production stack. GitHub Actions builds both images and pushes them to
+# GHCR; nothing is built on the host. Coolify runs its own copy of this file,
+# so a change here reaches production only once it's made there too. Only web gets a
 # domain. It reaches the API over this compose network and forwards /api/* to
 # it, so the API is never public.
 services:
@@ -32,6 +33,10 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+      # The first check otherwise waits a full interval, and nothing routes to
+      # a container until it passes.
+      start_period: 30s
+      start_interval: 1s
 
   web:
     image: ghcr.io/jtayped/rungs-web:${TAG:-main}
@@ -54,6 +59,10 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+      # The first check otherwise waits a full interval, and nothing routes to
+      # a container until it passes.
+      start_period: 30s
+      start_interval: 1s
 
 networks:
   coolify:

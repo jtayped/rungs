@@ -4,7 +4,13 @@
 // says yes to everything.
 //
 //   pnpm --filter @rungs/api probe
-// Only the OpenRouter key is needed here, not the api's full env.
+// Only the OpenRouter key is needed here, not the api's full env. It comes
+// from secret-run or apps/api/.env.local.
+try {
+  process.loadEnvFile('.env.local')
+} catch {
+  // No local env file.
+}
 process.env.OPENROUTER_API_KEY ||= process.env.RUNGS_OPENROUTER_API_KEY
 import { jev } from '../src/jev'
 

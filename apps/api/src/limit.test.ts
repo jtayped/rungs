@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { mock, test } from 'node:test'
-import { limiter } from './limit'
+import { dailyBudget, limiter } from './limit'
 
 test('allows max calls per key, then refuses until the window ends', () => {
   mock.timers.enable({ apis: ['Date'], now: 0 })
@@ -23,4 +23,16 @@ test('stays bounded under a flood of distinct keys', () => {
   for (let i = 0; i < 10_000; i++) allow(`flood-${i}`)
   // The oldest key was dropped to make room, so it starts over.
   assert.equal(allow('first'), true)
+})
+
+test('the daily budget counts every caller together and starts over at midnight UTC', () => {
+  mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-10-11T23:59:00Z') })
+  try {
+    const spend = dailyBudget(10)
+    assert.deepEqual([spend(6), spend(4), spend(1)], [true, true, false])
+    mock.timers.tick(60_000)
+    assert.equal(spend(10), true)
+  } finally {
+    mock.timers.reset()
+  }
 })

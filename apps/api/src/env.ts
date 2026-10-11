@@ -1,12 +1,13 @@
 import { createEnv } from '@t3-oss/env-core'
 import { z } from 'zod'
 
-// `pnpm dev` runs under secret-run, which exports the key under its own name.
+// secret-run, when `pnpm dev` finds it, exports the key under its own name.
 // The OpenRouter provider looks for OPENROUTER_API_KEY.
 process.env.OPENROUTER_API_KEY ||= process.env.RUNGS_OPENROUTER_API_KEY
 
-// Local dev talks to compose.dev.yaml's Postgres with a throwaway auth secret.
-// In production both must be set.
+// Local dev talks to compose.dev.yaml's Postgres with a throwaway auth secret,
+// on localhost. In production the database, the secret and the site's origin
+// must all be set.
 const dev = process.env.NODE_ENV !== 'production'
 
 export const env = createEnv({
@@ -20,7 +21,7 @@ export const env = createEnv({
       : z.string().min(32),
     // The public origin the browser sees. Auth routes live under it at
     // /api/auth, forwarded by the web app.
-    SITE_URL: z.url().default('http://localhost:3000'),
+    SITE_URL: dev ? z.url().default('http://localhost:3000') : z.url(),
     // Without a key, sign-in codes are printed to the console instead.
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().default('rungs <rungs@joeltaylor.business>'),

@@ -17,8 +17,21 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      # For the route test, which also applies every migration to an empty
+      # database.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: rungs
+          POSTGRES_PASSWORD: rungs
+          POSTGRES_DB: rungs
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
     env:
       TURBO_TELEMETRY_DISABLED: 1
+      DATABASE_URL: postgres://rungs:rungs@localhost:5432/rungs
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6

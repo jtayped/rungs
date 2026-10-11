@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import EULOGY from '../../ladders/a-few-words/ladder'
-import { bannedHits, isDegenerate } from './rules'
+import { bannedHits, countWords, isDegenerate } from './rules'
 import { scoreLadder, type Judge } from './score'
 
 // A judge that says whatever each test needs, keyed by rule id.
@@ -54,4 +54,17 @@ test('degenerate spam is never judged', async () => {
 
 test('stems match suffixes but not substrings', () => {
   assert.deepEqual(bannedHits('Lovely gloves', ['love']), ['lovely'])
+})
+
+test('invisible characters hide no banned word', () => {
+  assert.deepEqual(bannedHits('we lo\u200bved him, sof\u00adtly', ['love', 'soft']), [
+    'loved',
+    'softly',
+  ])
+})
+
+test('words are counted by letters, not by whitespace', () => {
+  assert.equal(countWords("don't stop, well-known: $50,000 by 9.30 — fine"), 7)
+  assert.equal(countWords('one\u2800two\u2800three'), 3)
+  assert.equal(countWords('  '), 0)
 })

@@ -12,7 +12,10 @@ export const metadata: Metadata = {
 export default async function AccountPage({ searchParams }: PageProps<'/account'>) {
   const { next } = await searchParams
   // Only same-site paths, so the link can't bounce anyone somewhere else.
-  const back = typeof next === 'string' && /^\/(?!\/)/.test(next) ? next : '/'
+  // Resolved the way the browser will, since `/\evil.com` and `/\t/evil.com`
+  // both look like paths and land on another site.
+  const url = typeof next === 'string' ? URL.parse(next, 'http://x') : null
+  const back = url?.origin === 'http://x' ? url.pathname + url.search : '/'
   return (
     <Page back={{ href: back, label: 'back' }} title="account">
       <Account next={back} />

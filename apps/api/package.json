@@ -9,11 +9,10 @@
     }
   },
   "scripts": {
-    "dev": "secret-run personal rungs.openrouter -- ./node_modules/.bin/tsx watch src/index.ts",
-    "dev:env": "tsx watch src/index.ts",
+    "dev": "if command -v secret-run >/dev/null; then secret-run personal rungs.openrouter -- ./node_modules/.bin/tsx watch src/index.ts; else tsx watch src/index.ts; fi",
     "build": "tsdown",
     "start": "node dist/index.mjs",
-    "probe": "secret-run personal rungs.openrouter -- ./node_modules/.bin/tsx scripts/probe.ts",
+    "probe": "if command -v secret-run >/dev/null; then secret-run personal rungs.openrouter -- ./node_modules/.bin/tsx scripts/probe.ts; else tsx scripts/probe.ts; fi",
     "test": "tsx --test 'src/**/*.test.ts'",
     "typecheck": "tsc",
     "lint": "eslint .",

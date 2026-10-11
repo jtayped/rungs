@@ -51,7 +51,7 @@ export function Nav({ ladder }: { ladder?: string }) {
       ) : null}
       <Link href="/account" aria-label={account} className={iconButton}>
         {initial ? (
-          <span className="bg-hue text-ground grid size-6 place-items-center rounded-full text-[12px] font-semibold">
+          <span className="bg-ink text-ground grid size-6 place-items-center rounded-full text-[12px] font-semibold">
             {initial}
           </span>
         ) : (

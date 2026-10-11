@@ -19,3 +19,17 @@ export function limiter(max: number, windowMs: number) {
     return ++hit.count <= max
   }
 }
+
+// One total for every caller, starting over at midnight UTC. `spend(n)` is
+// true while the day's total, n included, stays within `max`. Like `limiter`,
+// it lives in this process, so a deploy starts the day over.
+export function dailyBudget(max: number) {
+  let day = ''
+  let spent = 0
+  return (n: number) => {
+    const today = new Date().toISOString().slice(0, 10)
+    if (today !== day) [day, spent] = [today, 0]
+    spent += n
+    return spent <= max
+  }
+}
