@@ -24,7 +24,8 @@ export const env = createEnv({
     SITE_URL: dev ? z.url().default('http://localhost:3000') : z.url(),
     // Without a key, sign-in codes are printed to the console instead.
     RESEND_API_KEY: z.string().optional(),
-    EMAIL_FROM: z.string().default('rungs <rungs@joeltaylor.business>'),
+    // Required with RESEND_API_KEY, checked below.
+    EMAIL_FROM: z.string().optional(),
     // Baked into the image at build time. The deploy waits for /health to
     // report the commit it just built.
     RUNGS_COMMIT: z.string().default('dev'),
@@ -32,3 +33,7 @@ export const env = createEnv({
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
 })
+
+if (env.RESEND_API_KEY && !env.EMAIL_FROM) {
+  throw new Error('EMAIL_FROM must be set along with RESEND_API_KEY, as "name <address>".')
+}
