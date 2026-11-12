@@ -19,7 +19,7 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
-    "@hono/node-server": "^2.1.1",
+    "@hono/node-server": "^2.1.6",
     "@hono/zod-validator": "^0.9.1",
     "@openrouter/ai-sdk-provider": "^3.1.0",
     "@t3-oss/env-core": "^0.13.11",
